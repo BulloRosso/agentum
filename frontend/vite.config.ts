@@ -15,7 +15,8 @@ export default defineConfig({
     cors: true,
     // Add specific Replit host to allowed hosts
     strictPort: true,
-    allowedHosts: ['localhost', '.replit.dev', 'e1be09ec-6164-464e-a030-ad13e8db8bc9-00-2xatbaej1k6my.kirk.replit.dev'],
+    // Allow all hosts - this is needed when proxying through multiple services
+    allowedHosts: 'all',
   },
   // Allow all hosts including Replit domain
   preview: {
