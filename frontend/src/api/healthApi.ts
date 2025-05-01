@@ -12,6 +12,7 @@ interface HealthResponse {
 export const fetchHealthStatus = async (): Promise<HealthResponse> => {
   try {
     console.log('Fetching health status from API...');
+    // Use the proxy endpoint that's proven to work
     const response = await axios.get<HealthResponse>('/api/v1/health', {
       timeout: 5000, // 5 second timeout
       headers: {
