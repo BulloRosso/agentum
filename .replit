@@ -1,0 +1,53 @@
+modules = ["nodejs-20", "python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend Development Server"
+
+[[workflows.workflow]]
+name = "API Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd api && pip install -r requirements.txt && python main.py"
+waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Frontend Development Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm install && npm run dev"
+waitForPort = 5000
+
+[deployment]
+run = ["sh", "-c", "cd api && pip install -r requirements.txt && python main.py"]
+
+[[ports]]
+localPort = 3000
+externalPort = 80
+
+[[ports]]
+localPort = 5000
+externalPort = 5000
+
+[[ports]]
+localPort = 5001
+externalPort = 3000
