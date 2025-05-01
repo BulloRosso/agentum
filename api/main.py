@@ -39,7 +39,7 @@ class HealthResponse(BaseModel):
     uptime: float = Field(..., description="Service uptime in seconds")
     version: str = Field(..., description="API version")
 
-@app.get("/api/v1/health", response_model=HealthResponse)
+@app.get("/v1/health", response_model=HealthResponse)
 async def health_check():
     """
     Health check endpoint returns the status of the API service

@@ -39,7 +39,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd frontend && npm install && npm run dev"
-waitForPort = 5000
+waitForPort = 5173
 
 [[workflows.workflow]]
 name = "Proxy Server"
@@ -48,19 +48,25 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node proxy-server.js"
-waitForPort = 5001
+waitForPort = 80
 
 [deployment]
 run = ["sh", "-c", "cd api && pip install -r requirements.txt && python main.py"]
 
 [[ports]]
-localPort = 3000
+localPort = 80
 externalPort = 80
 
 [[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
 localPort = 5000
-externalPort = 5000
 
 [[ports]]
 localPort = 5001
-externalPort = 3000
+
+[[ports]]
+localPort = 5173
+externalPort = 5173

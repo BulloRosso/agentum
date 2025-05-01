@@ -39,18 +39,33 @@ proxy.on('error', (err, req, res) => {
 // Create Express app
 const app = express();
 
-// API endpoints proxy - preserve the /api prefix
-app.use('/api', (req, res) => {
-  logger.info(`Proxying request to API: ${req.url}`);
-  // We need to use the full URL without stripping /api since the backend expects it
-  const targetUrl = `http://localhost:3000${req.url.startsWith('/') ? '' : '/'}${req.url}`;
-  logger.info(`Target URL: ${targetUrl}`);
+// Health check endpoint needs to be explicitly routed to maintain API path
+app.get('/api/v1/health', (req, res) => {
+  logger.info(`Proxying health check request to API endpoint`);
   
-  proxy.web(req, res, { 
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-    // Don't remove the /api prefix because the backend API expects it
-    ignorePath: false
+  // Direct the request to the FastAPI backend health endpoint
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/v1/health',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
+// Generic API endpoint proxy for all other API routes
+app.use('/api', (req, res) => {
+  if (req.path === '/v1/health') {
+    // Skip this handler for health check - it's handled by the specific route above
+    return;
+  }
+  
+  logger.info(`Proxying API request: ${req.path}`);
+  
+  // Remove /api prefix when forwarding to backend
+  const backendPath = req.path;
+  proxy.web(req, res, {
+    target: `http://localhost:3000${backendPath}`,
+    ignorePath: true,
+    changeOrigin: true
   });
 });
 
@@ -63,7 +78,7 @@ app.use('/', (req, res) => {
   
   logger.info(`Proxying request to frontend: ${req.url}`);
   proxy.web(req, res, {
-    target: 'http://localhost:5000',
+    target: 'http://localhost:5173',
     changeOrigin: true
   });
 });
@@ -72,8 +87,9 @@ app.use('/', (req, res) => {
 const server = http.createServer(app);
 
 // Start the server
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 80;
 server.listen(PORT, '0.0.0.0', () => {
   logger.info(`Proxy server running at http://0.0.0.0:${PORT}`);
   logger.info('Proxying API requests to http://localhost:3000');
+  logger.info('Proxying Frontend requests to http://localhost:5173');
 });

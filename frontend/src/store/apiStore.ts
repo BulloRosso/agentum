@@ -20,10 +20,13 @@ export const useApiStore = create<ApiState>((set) => ({
   lastUpdated: null,
   
   fetchApiHealth: async () => {
+    console.log('Store: Starting API health fetch');
     set({ isLoading: true, error: null });
     
     try {
+      console.log('Store: Calling fetchHealthStatus()');
       const healthData = await fetchHealthStatus();
+      console.log('Store: Received health data:', healthData);
       
       set({
         apiStatus: healthData.status,
@@ -32,14 +35,16 @@ export const useApiStore = create<ApiState>((set) => ({
         isLoading: false,
         lastUpdated: new Date()
       });
+      console.log('Store: Successfully updated state with health data');
     } catch (error) {
-      console.error('Error fetching API health:', error);
+      console.error('Store: Error fetching API health:', error);
       
       set({
         error: error instanceof Error ? error.message : 'Failed to fetch API health',
         isLoading: false,
         lastUpdated: new Date()
       });
+      console.log('Store: Set error state');
     }
   }
 }));
