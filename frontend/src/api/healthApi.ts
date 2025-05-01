@@ -1,0 +1,32 @@
+import axios from 'axios';
+
+interface HealthResponse {
+  status: string;
+  uptime: number;
+  version: string;
+}
+
+/**
+ * Fetches the health status from the API
+ */
+export const fetchHealthStatus = async (): Promise<HealthResponse> => {
+  try {
+    const response = await axios.get<HealthResponse>('/api/v1/health');
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        throw new Error(`Server error: ${error.response.status} - ${error.response.data.message || 'Unknown error'}`);
+      } else if (error.request) {
+        // The request was made but no response was received
+        throw new Error('No response received from server. API might be down.');
+      } else {
+        // Something happened in setting up the request
+        throw new Error(`Error: ${error.message}`);
+      }
+    }
+    throw new Error('Unknown error occurred while fetching health status');
+  }
+};
