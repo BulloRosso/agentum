@@ -39,24 +39,33 @@ proxy.on('error', (err, req, res) => {
 // Create Express app
 const app = express();
 
-// API endpoints proxy
+// API endpoints proxy - preserve the /api prefix
 app.use('/api', (req, res) => {
   logger.info(`Proxying request to API: ${req.url}`);
+  // We need to use the full URL without stripping /api since the backend expects it
+  const targetUrl = `http://localhost:3000${req.url.startsWith('/') ? '' : '/'}${req.url}`;
+  logger.info(`Target URL: ${targetUrl}`);
+  
   proxy.web(req, res, { 
     target: 'http://localhost:3000',
-    changeOrigin: true
+    changeOrigin: true,
+    // Don't remove the /api prefix because the backend API expects it
+    ignorePath: false
   });
 });
 
-// Frontend static files - in production
-app.use(express.static(path.join(__dirname, 'frontend', 'dist')));
-
-// Fallback to index.html for frontend routes in production
-app.get('*', (req, res, next) => {
+// Frontend proxy for development
+app.use('/', (req, res) => {
+  // Skip if it's an API request
   if (req.url.startsWith('/api/')) {
-    return next();
+    return;
   }
-  res.sendFile(path.join(__dirname, 'frontend', 'dist', 'index.html'));
+  
+  logger.info(`Proxying request to frontend: ${req.url}`);
+  proxy.web(req, res, {
+    target: 'http://localhost:5000',
+    changeOrigin: true
+  });
 });
 
 // Create server

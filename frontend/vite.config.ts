@@ -7,15 +7,19 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5000,
-    proxy: {
-      // Proxy API requests directly to the FastAPI backend in development
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path
-      },
+    hmr: {
+      // Allow connections from Replit domain
+      clientPort: 443,
     },
+    cors: true,
+    // Add specific Replit host to allowed hosts
+    strictPort: true,
+    allowedHosts: ['localhost', '.replit.dev', 'e1be09ec-6164-464e-a030-ad13e8db8bc9-00-2xatbaej1k6my.kirk.replit.dev'],
+  },
+  // Allow all hosts including Replit domain
+  preview: {
+    host: '0.0.0.0',
+    port: 5000
   },
   build: {
     outDir: 'dist',
