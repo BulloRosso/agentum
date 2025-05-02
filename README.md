@@ -55,7 +55,9 @@ The system consists of several decoupled components that work together:
 - Supports Server-Sent Events (SSE) for real-time updates
 - Dual path structure (`/endpoint` and `/sse/endpoint`)
 
-## A2A Server Integration
+## Server Integrations
+
+### A2A Server Integration
 
 The A2A server is integrated with the main application via the proxy server. Requests to the following endpoints are routed to the A2A server:
 
@@ -64,6 +66,21 @@ The A2A server is integrated with the main application via the proxy server. Req
 - `/agent-card/*`: All requests to this path (any HTTP method) are routed to the A2A server
 
 See the [A2A server documentation](./a2a-server/README.md) for more details on implementation and usage.
+
+### MCP Server Integration
+
+The MCP (Media Control Protocol) server is integrated with the main application via the proxy server. Requests to the following endpoints are routed to the MCP server:
+
+- `/sse/*`: All SSE endpoints (status, tools, resources, prompts)
+- `/sse`: The SSE event stream endpoint
+
+The MCP server provides:
+- Tools API: Functions that can be called to perform actions
+- Resources API: Static files and data that can be downloaded
+- Prompts API: Templates for generating LLM prompts
+- Server-Sent Events (SSE): Real-time updates and streaming
+
+See the [MCP server documentation](./docs/mcp-server.md) and [MCP client documentation](./docs/mcp-client.md) for more details.
 
 ## Development
 
@@ -104,6 +121,13 @@ The application is divided into multiple services, each running in its own proce
    # node dist/main.js
    ```
 
+5. **MCP Server**:
+   ```
+   cd mcp-server
+   pip install -r requirements.txt
+   python mcp_server.py
+   ```
+
 ### Running Tests
 
 Integration tests are available for the A2A server:
@@ -117,7 +141,9 @@ node run-tests.js  # Runs all A2A server tests
 
 ### Backend API
 
-- `GET /v1/health`: Health check endpoint
+- `GET /health`: Health check endpoint
+- `GET /api/v1/methods`: List of available API methods
+- `GET /api/doc`: API documentation (Redoc)
 
 ### A2A Server
 
@@ -127,3 +153,14 @@ node run-tests.js  # Runs all A2A server tests
   - `tasks/sendSubscribe`: Send a message with streaming updates
   - `tasks/get`: Get task information by ID
   - `tasks/cancel`: Cancel a running task
+
+### MCP Server
+
+- `GET /status` or `GET /sse/status`: Server status and available resources
+- `GET /tools` or `GET /sse/tools`: List of available tools
+- `POST /tools/{name}` or `POST /sse/tools/{name}`: Execute a tool
+- `GET /resources` or `GET /sse/resources`: List of available resources
+- `GET /resources/{name}` or `GET /sse/resources/{name}`: Get a specific resource
+- `GET /prompts` or `GET /sse/prompts`: List of available prompt templates
+- `POST /prompts/{name}` or `POST /sse/prompts/{name}`: Generate a prompt
+- `GET /sse`: Server-Sent Events (SSE) connection for real-time updates
