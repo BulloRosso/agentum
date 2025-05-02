@@ -11,9 +11,8 @@ import {
   CircularProgress,
   Paper
 } from '@mui/material';
-import { AgentCard } from '../api/a2aApi';
-import { A2AClient } from '../utils/A2AClient';
-import { MessagePart, MessageTextPart, TaskState } from '../utils/A2ASchema';
+import { AgentCard, testAgent } from '../api/a2aApi';
+import { MessagePart, MessageTextPart } from '../utils/A2ASchema';
 
 interface AgentTestModalProps {
   open: boolean;
@@ -38,40 +37,31 @@ const AgentTestModal: React.FC<AgentTestModalProps> = ({ open, onClose, agent })
     setResponse(null);
 
     try {
-      // Create a new A2A client
-      const client = new A2AClient('/.well-known');
-
-      // Generate a random task ID
-      const taskId = `task-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      // Send the task to the agent
-      const task = await client.sendTask({
-        id: taskId,
-        message: {
-          role: 'user',
-          parts: [
-            {
-              type: 'text',
-              text: message
-            }
-          ]
+      // Send the task to the agent using our testAgent function
+      const task = await testAgent(message);
+      
+      // Extract the message from the agent's response
+      if (task && task.status) {
+        if (task.status.state === 'completed') {
+          // If the task completed, show the response message
+          if (task.status.message && task.status.message.parts) {
+            const responseText = task.status.message.parts
+              .map(part => (part as MessageTextPart).text || '')
+              .join('\n');
+            
+            setResponse(responseText || 'No text response received');
+          } else {
+            setResponse('No response message received');
+          }
+        } else if (task.status.state === 'failed') {
+          // If the task failed, show the error
+          setError(`Task failed: ${task.status.error || 'Unknown error'}`);
+        } else {
+          // If the task is still in progress or in an unknown state
+          setError(`Task did not complete. Current state: ${task.status.state}`);
         }
-      });
-
-      if (task && task.status && task.status.state === 'succeeded' as TaskState) {
-        // If the task succeeded, show the response
-        const responseText = task.status.output?.parts
-          ?.filter((part: MessagePart) => part.type === 'text')
-          .map((part: MessageTextPart) => part.text)
-          .join('\n');
-          
-        setResponse(responseText || 'No text response received');
-      } else if (task && task.status && task.status.state === 'failed' as TaskState) {
-        // If the task failed, show the error
-        setError(`Task failed: ${task.status.error?.message || 'Unknown error'}`);
       } else {
-        // If the task is still in progress or in an unknown state
-        setError('Task did not complete or returned in an unexpected state');
+        setError('Invalid response from agent');
       }
     } catch (err) {
       console.error('Error testing agent:', err);
