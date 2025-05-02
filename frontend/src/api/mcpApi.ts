@@ -50,7 +50,13 @@ export const fetchMCPStatus = async (): Promise<MCPStatus> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching MCP status:', error);
-    throw error;
+    // Return default status to prevent UI errors
+    return {
+      tools: 0,
+      resources: 0,
+      prompts: 0,
+      status: 'offline'
+    };
   }
 };
 
@@ -63,7 +69,7 @@ export const fetchMCPTools = async (): Promise<MCPTool[]> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching MCP tools:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -76,7 +82,7 @@ export const fetchMCPResources = async (): Promise<MCPResource[]> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching MCP resources:', error);
-    throw error;
+    return [];
   }
 };
 
@@ -89,6 +95,6 @@ export const fetchMCPPrompts = async (): Promise<MCPPrompt[]> => {
     return response.data;
   } catch (error) {
     console.error('Error fetching MCP prompts:', error);
-    throw error;
+    return [];
   }
 };

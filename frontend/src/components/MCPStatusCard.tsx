@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import * as React from 'react';
 import {
   Card,
   CardContent,
@@ -26,13 +26,13 @@ const MCPStatusCard: React.FC = () => {
   const { status, tools, resources, prompts, isLoading, error, fetchAll } = useMCPStore();
   
   // Local state for expand/collapse sections
-  const [expandedSections, setExpandedSections] = useState({
+  const [expandedSections, setExpandedSections] = React.useState({
     tools: false,
     resources: false,
     prompts: false
   });
   
-  useEffect(() => {
+  React.useEffect(() => {
     // Fetch data on component mount
     fetchAll();
     
