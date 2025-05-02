@@ -113,7 +113,7 @@ const MCPStatusCard: React.FC = () => {
                   : 'Server metrics loading...'}
               </Typography>
               <Chip 
-                label={isConnected ? 'Online' : (status?.status === 'operational' ? 'Online' : 'Offline')} 
+                label={isConnected ? 'operational' : (status?.status === 'operational' ? 'operational' : 'Offline')} 
                 color={isConnected ? 'success' : (status?.status === 'operational' ? 'success' : 'error')} 
                 size="small"
                 icon={isConnected ? <CheckCircleIcon /> : undefined}

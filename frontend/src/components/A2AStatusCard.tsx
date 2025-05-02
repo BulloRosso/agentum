@@ -5,12 +5,21 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemIcon,
   Divider,
   Chip,
   CircularProgress,
-  Button
+  Button,
+  Card,
+  CardContent,
+  Collapse,
+  Alert
 } from '@mui/material';
-import StatusCard from './StatusCard';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ErrorIcon from '@mui/icons-material/Error';
 import AgentTestModal from './AgentTestModal';
 import { useA2AStore } from '../store/a2aStore';
 import { AgentCard } from '../api/a2aApi';
@@ -19,6 +28,7 @@ const A2AStatusCard: React.FC = () => {
   const { status, agents, isLoading, error, fetchStatus } = useA2AStore();
   const [selectedAgent, setSelectedAgent] = useState<AgentCard | null>(null);
   const [testModalOpen, setTestModalOpen] = useState(false);
+  const [expandedAgents, setExpandedAgents] = useState<boolean>(false);
 
   // Fetch A2A status when component mounts
   useEffect(() => {
@@ -32,13 +42,8 @@ const A2AStatusCard: React.FC = () => {
     return () => clearInterval(intervalId);
   }, [fetchStatus]);
 
-  const getStatusDetails = () => {
-    const details = [
-      { label: 'Number of Agents', value: agents.length.toString() },
-      { label: 'Last Checked', value: new Date().toLocaleTimeString() }
-    ];
-    
-    return details;
+  const toggleAgentsSection = () => {
+    setExpandedAgents(!expandedAgents);
   };
 
   const renderAgentsList = () => {
@@ -52,39 +57,40 @@ const A2AStatusCard: React.FC = () => {
 
     if (agents.length === 0) {
       return (
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, ml: 4 }}>
           No agents available
         </Typography>
       );
     }
 
     return (
-      <List sx={{ width: '100%', mt: 1 }}>
+      <List dense>
         {agents.map((agent: AgentCard, index: number) => (
           <React.Fragment key={`agent-${index}`}>
             {index > 0 && <Divider component="li" />}
             <ListItem 
-              alignItems="flex-start" 
-              sx={{ px: 0 }}
               secondaryAction={
                 <Button
                   variant="outlined"
                   size="small"
                   color="primary"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setSelectedAgent(agent);
                     setTestModalOpen(true);
                   }}
-                  sx={{ mt: 1 }}
                 >
-                  Test Agent
+                  Test
                 </Button>
               }
             >
-              <ListItemText
+              <ListItemIcon sx={{ minWidth: 36 }}>
+                <SmartToyIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText 
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Typography variant="subtitle1" component="span">
+                    <Typography variant="body2" component="span">
                       {agent.name}
                     </Typography>
                     {agent.version && (
@@ -100,7 +106,7 @@ const A2AStatusCard: React.FC = () => {
                 secondary={
                   <React.Fragment>
                     <Typography
-                      variant="body2"
+                      variant="caption"
                       color="text.primary"
                       component="span"
                     >
@@ -145,6 +151,8 @@ const A2AStatusCard: React.FC = () => {
                     )}
                   </React.Fragment>
                 }
+                primaryTypographyProps={{ variant: 'body2' }}
+                secondaryTypographyProps={{ variant: 'caption' }}
               />
             </ListItem>
           </React.Fragment>
@@ -155,20 +163,84 @@ const A2AStatusCard: React.FC = () => {
 
   return (
     <>
-      <StatusCard
-        title="A2A Server Status"
-        status={status}
-        isOperational={status === 'operational'}
-        details={getStatusDetails()}
-        error={error}
-      >
-        <Box sx={{ mt: 2 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            Available Agents
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Typography variant="h6" component="div" gutterBottom>
+            A2A Server Status
           </Typography>
-          {renderAgentsList()}
-        </Box>
-      </StatusCard>
+          
+          {isLoading && !status && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          )}
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
+          
+          {status && (
+            <>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+                <Typography variant="body2" color="text.secondary">
+                  Server hosts {agents.length} agent{agents.length !== 1 ? 's' : ''}
+                </Typography>
+                <Chip 
+                  label={status === 'operational' ? 'operational' : 'Offline'} 
+                  color={status === 'operational' ? 'success' : 'error'} 
+                  size="small"
+                  icon={status === 'operational' ? <CheckCircleIcon /> : undefined}
+                />
+              </Box>
+              
+              {/* Agents Section */}
+              <Box sx={{ mb: 2 }}>
+                <Box 
+                  sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    cursor: 'pointer',
+                    borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+                    pb: 0.5
+                  }}
+                  onClick={toggleAgentsSection}
+                >
+                  <SmartToyIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                  <Typography variant="subtitle1">
+                    Available Agents ({agents.length})
+                  </Typography>
+                  <Box sx={{ flexGrow: 1 }} />
+                  {expandedAgents ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </Box>
+                
+                <Collapse in={expandedAgents}>
+                  {renderAgentsList()}
+                </Collapse>
+              </Box>
+            </>
+          )}
+          
+          {!isLoading && !status && !error && (
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', py: 2 }}>
+              <ErrorIcon color="warning" sx={{ mb: 1 }} />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Unable to connect to A2A server
+              </Typography>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={() => fetchStatus()}
+                startIcon={isLoading ? <CircularProgress size={16} /> : undefined}
+                disabled={isLoading}
+              >
+                Retry
+              </Button>
+            </Box>
+          )}
+        </CardContent>
+      </Card>
 
       {selectedAgent && (
         <AgentTestModal
