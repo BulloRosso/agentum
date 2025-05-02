@@ -20,10 +20,13 @@ import ChatIcon from '@mui/icons-material/Chat';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ErrorIcon from '@mui/icons-material/Error';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useMCPStore } from '../store/mcpStore';
+import { useSseConnection, connectToSSE, disconnectFromSSE } from '../api/mcpSseApi';
 
 const MCPStatusCard: React.FC = () => {
   const { status, tools, resources, prompts, isLoading, error, fetchAll } = useMCPStore();
+  const { isConnected, lastPing } = useSseConnection();
   
   // Local state for expand/collapse sections
   const [expandedSections, setExpandedSections] = React.useState({
@@ -36,13 +39,19 @@ const MCPStatusCard: React.FC = () => {
     // Fetch data on component mount
     fetchAll();
     
+    // Connect to SSE endpoint for real-time updates
+    const cleanupSSE = connectToSSE();
+    
     // Set up a refresh interval (every 30 seconds)
     const refreshInterval = setInterval(() => {
       fetchAll();
     }, 30000);
     
     // Clean up on unmount
-    return () => clearInterval(refreshInterval);
+    return () => {
+      clearInterval(refreshInterval);
+      cleanupSSE();
+    };
   }, [fetchAll]);
   
   // Toggle expanded sections
@@ -72,18 +81,20 @@ const MCPStatusCard: React.FC = () => {
           </Alert>
         )}
         
-        {status && (
+        {(status || isConnected) && (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Chip 
-                label={status.status === 'operational' ? 'Online' : 'Offline'} 
-                color={status.status === 'operational' ? 'success' : 'error'} 
-                size="small"
-                sx={{ mr: 1 }}
-              />
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary">
-                Server provides {status.tools} tools, {status.resources} resources, and {status.prompts} prompts
+                {status ? 
+                  `Server provides ${status.tools} tools, ${status.resources} resources, and ${status.prompts} prompts` 
+                  : 'Server metrics loading...'}
               </Typography>
+              <Chip 
+                label={isConnected ? 'Online' : (status?.status === 'operational' ? 'Online' : 'Offline')} 
+                color={isConnected ? 'success' : (status?.status === 'operational' ? 'success' : 'error')} 
+                size="small"
+                icon={isConnected ? <CheckCircleIcon /> : undefined}
+              />
             </Box>
             
             {/* Tools Section */}
@@ -223,21 +234,31 @@ const MCPStatusCard: React.FC = () => {
           </>
         )}
         
-        {!isLoading && !status && !error && (
+        {!isLoading && !status && !error && !isConnected && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', py: 2 }}>
             <ErrorIcon color="warning" sx={{ mb: 1 }} />
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Unable to connect to MCP server
             </Typography>
-            <Button 
-              variant="outlined" 
-              size="small" 
-              onClick={() => fetchAll()}
-              startIcon={isLoading ? <CircularProgress size={16} /> : undefined}
-              disabled={isLoading}
-            >
-              Retry
-            </Button>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={() => fetchAll()}
+                startIcon={isLoading ? <CircularProgress size={16} /> : undefined}
+                disabled={isLoading}
+              >
+                Retry HTTP
+              </Button>
+              <Button 
+                variant="outlined" 
+                size="small" 
+                onClick={() => connectToSSE()}
+                color="secondary"
+              >
+                Retry SSE
+              </Button>
+            </Box>
           </Box>
         )}
       </CardContent>
