@@ -34,7 +34,8 @@
   <!-- A2A Server -->
   <rect x="420" y="350" width="160" height="80" rx="10" ry="10" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="2" />
   <text x="500" y="385" font-family="Arial" font-size="16" font-weight="bold" text-anchor="middle">A2A Server</text>
-  <text x="500" y="410" font-family="Arial" font-size="12" text-anchor="middle">(TypeScript/Express)</text>
+  <text x="500" y="402" font-family="Arial" font-size="9" text-anchor="middle">(Google A2A Protocol)</text>
+  <text x="500" y="418" font-family="Arial" font-size="12" text-anchor="middle">(TypeScript/Express)</text>
 
   <!-- MCP Server -->
   <rect x="600" y="350" width="160" height="80" rx="10" ry="10" fill="#ede7f6" stroke="#5e35b1" stroke-width="2" />
@@ -62,20 +63,8 @@
   <line x1="470" y1="270" x2="680" y2="350" stroke="#666" stroke-width="2" marker-end="url(#arrow)" />
   <text x="600" y="310" font-family="Arial" font-size="12">Port 3400</text>
   
-  <!-- Proxy rules -->
-  <text x="60" y="460" font-family="Arial" font-size="14" font-weight="bold">Proxy Routes:</text>
-  <text x="60" y="480" font-family="Arial" font-size="12">/ → Frontend</text>
-  <text x="60" y="500" font-family="Arial" font-size="12">/api/* → API Backend</text>
-  <text x="60" y="520" font-family="Arial" font-size="12">/health → API Backend</text>
-
-  <text x="260" y="460" font-family="Arial" font-size="14" font-weight="bold">A2A Routes:</text>
-  <text x="260" y="480" font-family="Arial" font-size="12">/.well-known/* → A2A Server</text>
-  <text x="260" y="500" font-family="Arial" font-size="12">/tasks → A2A Server</text>
-  <text x="260" y="520" font-family="Arial" font-size="12">/agent-card/* → A2A Server</text>
-
-  <text x="470" y="460" font-family="Arial" font-size="14" font-weight="bold">MCP Routes:</text>
-  <text x="470" y="480" font-family="Arial" font-size="12">/sse/* → MCP Server</text>
-  <text x="470" y="500" font-family="Arial" font-size="12">/sse → MCP Server</text>
+  <!-- Port legend -->
+  <text x="300" y="480" font-family="Arial" font-size="14" font-weight="bold">Server Information</text>
   
   <!-- Port legend -->
   <text x="100" y="550" font-family="Arial" font-size="14" font-weight="bold">Listening Ports:</text>
