@@ -191,12 +191,17 @@ async def get_workflows():
         # for Pydantic v2 to get the dictionary representation
         workflows_dict = workflows.model_dump() if hasattr(workflows, 'model_dump') else workflows.dict()
         
+        # Ensure the format is correct for storage (it should have a 'data' field)
+        if "data" not in workflows_dict and hasattr(workflows, "data"):
+            # Add the data field explicitly
+            workflows_dict = {"data": workflows.data}
+        
         # Save to storage
         logger.info("Storing workflows to workflows.json")
         storage_result = storage.create_json("workflows.json", workflows_dict)
         
         if storage_result:
-            logger.info("Successfully stored workflows to workflows.json")
+            logger.info(f"Successfully stored {len(workflows_dict.get('data', []))} workflows to workflows.json")
         else:
             logger.warning("Failed to store workflows to workflows.json")
             
@@ -239,26 +244,37 @@ async def get_cached_workflows():
         if workflows_json is None:
             logger.warning("No cached workflows found in storage")
             # Create an empty workflow list with the correct structure
-            empty_workflows = {"workflows": []}
+            empty_workflows = {"data": []}
             return WorkflowList(**empty_workflows)
         
         # Convert to WorkflowList object
         # Check the structure to ensure it's correct
-        if not isinstance(workflows_json, dict) or "workflows" not in workflows_json:
+        if not isinstance(workflows_json, dict):
             logger.warning("Invalid structure in cached workflows.json, creating empty workflow list")
-            empty_workflows = {"workflows": []}
+            empty_workflows = {"data": []}
             return WorkflowList(**empty_workflows)
             
+        # If workflows_json has a "workflows" key, convert it to "data" key for the WorkflowList model
+        if "workflows" in workflows_json and "data" not in workflows_json:
+            logger.info("Converting workflows key to data key for WorkflowList model")
+            workflows_json["data"] = workflows_json.pop("workflows")
+            
+        # If there's no data key, create an empty one
+        if "data" not in workflows_json:
+            logger.warning("Adding empty data list to workflows_json")
+            workflows_json["data"] = []
+            
+        # Use appropriate method based on pydantic version
         cached_workflows = WorkflowList.parse_obj(workflows_json) if hasattr(WorkflowList, 'parse_obj') else WorkflowList(**workflows_json)
         
-        logger.info(f"Successfully retrieved {len(cached_workflows.workflows)} cached workflows from storage")
+        logger.info(f"Successfully retrieved {len(cached_workflows.data)} cached workflows from storage")
         return cached_workflows
         
     except Exception as e:
         logger.error(f"Error retrieving cached workflows: {str(e)}")
         # Instead of raising an exception, return an empty workflow list
         logger.info("Returning empty workflow list due to error")
-        empty_workflows = {"workflows": []}
+        empty_workflows = {"data": []}
         return WorkflowList(**empty_workflows)
 
 # Storage test endpoint to verify that the storage service is working

@@ -1,0 +1,30 @@
+{
+  "data": [
+    {
+      "id": "demo-workflow-1",
+      "name": "Data Processing Workflow",
+      "active": true,
+      "tags": [
+        {
+          "id": "tag-1",
+          "name": "data-processing",
+          "createdAt": "2025-05-01T00:00:00Z",
+          "updatedAt": "2025-05-01T12:00:00Z"
+        }
+      ]
+    },
+    {
+      "id": "demo-workflow-2",
+      "name": "Email Notification Workflow",
+      "active": false,
+      "tags": [
+        {
+          "id": "tag-2",
+          "name": "notification",
+          "createdAt": "2025-05-01T00:00:00Z",
+          "updatedAt": "2025-05-01T12:00:00Z"
+        }
+      ]
+    }
+  ]
+}

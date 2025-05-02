@@ -3,9 +3,11 @@ import { Box, Grid, Alert, CircularProgress } from '@mui/material';
 import A2AStatusCard from './A2AStatusCard';
 import MCPStatusCard from './MCPStatusCardFixed';
 import APIStatusCard from './APIStatusCard';
+import Workflows from './Workflows';
 import { useApiStore } from '../store/apiStore';
 import { useA2AStore } from '../store/a2aStore';
 import { useMCPStore } from '../store/mcpStore';
+import { useWorkflowStore } from '../store/workflowStore';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -18,6 +20,7 @@ const Dashboard: React.FC = () => {
   
   const { fetchStatus } = useA2AStore();
   const { fetchAll: fetchMCPStatus } = useMCPStore();
+  const { fetchWorkflows } = useWorkflowStore();
 
   useEffect(() => {
     // Initial fetch
@@ -25,17 +28,19 @@ const Dashboard: React.FC = () => {
     fetchApiMethods();
     fetchStatus();
     fetchMCPStatus();
+    fetchWorkflows();
     
     // Set up polling interval (every 30 seconds)
     const intervalId = setInterval(() => {
       fetchApiHealth();
       fetchStatus();
       fetchMCPStatus();
+      fetchWorkflows();
     }, 30000);
     
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, [fetchApiHealth, fetchApiMethods, fetchStatus, fetchMCPStatus]);
+  }, [fetchApiHealth, fetchApiMethods, fetchStatus, fetchMCPStatus, fetchWorkflows]);
 
   if (isLoading && !apiStatus) {
     return (
@@ -54,6 +59,11 @@ const Dashboard: React.FC = () => {
       )}
       
       <Grid container spacing={3}>
+        {/* Workflows */}
+        <Grid item xs={12}>
+          <Workflows />
+        </Grid>
+        
         <Grid item xs={12} md={6}>
           <APIStatusCard />
         </Grid>
