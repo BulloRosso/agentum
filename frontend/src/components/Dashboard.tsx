@@ -78,30 +78,9 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        {/* Placeholder for future status cards */}
+        {/* A2A Server Status */}
         <Grid item xs={12} md={6}>
-          <Box 
-            sx={{
-              height: '100%',
-              minHeight: 200,
-              backgroundColor: 'background.paper',
-              borderRadius: 2,
-              p: 3,
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              alignItems: 'center',
-              border: '1px dashed',
-              borderColor: 'divider',
-            }}
-          >
-            <Typography variant="h6" color="text.secondary">
-              Additional Services
-            </Typography>
-            <Typography variant="body2" color="text.secondary" align="center">
-              Future services status will appear here
-            </Typography>
-          </Box>
+          <A2AStatusCard />
         </Grid>
       </Grid>
     </Box>
