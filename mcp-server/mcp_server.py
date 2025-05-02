@@ -1,6 +1,8 @@
 import anyio
 import click
 import httpx
+import json
+from starlette.responses import JSONResponse
 import mcp.types as types
 from mcp.server.lowlevel import Server
 
@@ -26,6 +28,105 @@ async def fetch_website(
 )
 def main(port: int, transport: str) -> int:
     app = Server("mcp-website-fetcher")
+
+    # Sample data for API responses
+    tools_data = [
+        {
+            "name": "fetch",
+            "description": "Fetches a website and returns its content",
+            "inputSchema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "description": "URL to fetch",
+                    }
+                },
+            },
+        },
+        {
+            "name": "saveFile",
+            "description": "Saves content to a file",
+            "inputSchema": {
+                "type": "object",
+                "required": ["filename", "content"],
+                "properties": {
+                    "filename": {
+                        "type": "string",
+                        "description": "Name of the file to save"
+                    },
+                    "content": {
+                        "type": "string",
+                        "description": "Content to save"
+                    }
+                }
+            }
+        }
+    ]
+    
+    resources_data = [
+        {
+            "uri": "file:///greeting.txt",
+            "name": "greeting",
+            "description": "A welcome message",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "file:///help.txt",
+            "name": "help",
+            "description": "Help information",
+            "mimeType": "text/plain"
+        },
+        {
+            "uri": "file:///config.json",
+            "name": "config",
+            "description": "Configuration settings",
+            "mimeType": "application/json"
+        }
+    ]
+    
+    prompts_data = [
+        {
+            "name": "simple",
+            "description": "A simple prompt template with optional context and topic",
+            "arguments": [
+                {
+                    "name": "context",
+                    "description": "Additional context to consider",
+                    "required": False
+                },
+                {
+                    "name": "topic",
+                    "description": "Specific topic to focus on",
+                    "required": False
+                }
+            ]
+        },
+        {
+            "name": "analyzer",
+            "description": "Analyzes provided content with specific instructions",
+            "arguments": [
+                {
+                    "name": "content",
+                    "description": "Content to analyze",
+                    "required": True
+                },
+                {
+                    "name": "instructions",
+                    "description": "Specific analysis instructions",
+                    "required": True
+                }
+            ]
+        }
+    ]
+    
+    status_data = {
+        "tools": len(tools_data),
+        "resources": len(resources_data),
+        "prompts": len(prompts_data),
+        "status": "operational"
+    }
 
     @app.call_tool()
     async def fetch_tool(
@@ -70,11 +171,28 @@ def main(port: int, transport: str) -> int:
                 await app.run(
                     streams[0], streams[1], app.create_initialization_options()
                 )
+                
+        # HTTP API handlers
+        async def handle_status(request):
+            return JSONResponse(status_data)
+            
+        async def handle_tools(request):
+            return JSONResponse(tools_data)
+            
+        async def handle_resources(request):
+            return JSONResponse(resources_data)
+            
+        async def handle_prompts(request):
+            return JSONResponse(prompts_data)
 
         starlette_app = Starlette(
             debug=True,
             routes=[
                 Route("/sse", endpoint=handle_sse),
+                Route("/sse/status", endpoint=handle_status),
+                Route("/sse/tools", endpoint=handle_tools),
+                Route("/sse/resources", endpoint=handle_resources),
+                Route("/sse/prompts", endpoint=handle_prompts),
                 Mount("/messages/", app=sse.handle_post_message),
             ],
         )
@@ -94,3 +212,6 @@ def main(port: int, transport: str) -> int:
         anyio.run(arun)
 
     return 0
+
+if __name__ == "__main__":
+    main()
