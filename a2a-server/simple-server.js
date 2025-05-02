@@ -71,10 +71,12 @@ app.post('/tasks', async (req, res) => {
 
 // Handle tasks/send method
 async function handleTaskSend(request, res) {
-  const params = request.params;
+  console.log('Received request:', JSON.stringify(request, null, 2));
+  const params = request.params || request.body?.params;
   
   // Validate params
   if (!params || !params.id || !params.message) {
+    console.log('Invalid params received:', JSON.stringify(request, null, 2));
     return res.json({
       jsonrpc: '2.0',
       id: request.id || null,
@@ -133,20 +135,20 @@ async function handleTaskSend(request, res) {
   // Return the task
   res.json({
     jsonrpc: '2.0',
-    id: request.id,
+    id: request.id || request.body?.id || null,
     result: task
   });
 }
 
 // Handle tasks/get method
 function handleTaskGet(request, res) {
-  const params = request.params;
+  const params = request.params || request.body?.params;
   
   // Validate params
   if (!params || !params.id) {
     return res.json({
       jsonrpc: '2.0',
-      id: request.id || null,
+      id: request.id || request.body?.id || null,
       error: {
         code: -32602,
         message: 'Missing task ID'
@@ -160,7 +162,7 @@ function handleTaskGet(request, res) {
   if (!tasks.has(taskId)) {
     return res.json({
       jsonrpc: '2.0',
-      id: request.id || null,
+      id: request.id || request.body?.id || null,
       error: {
         code: -32000,
         message: `Task ${taskId} not found`
@@ -171,7 +173,7 @@ function handleTaskGet(request, res) {
   // Return the task
   res.json({
     jsonrpc: '2.0',
-    id: request.id,
+    id: request.id || request.body?.id || null,
     result: tasks.get(taskId)
   });
 }

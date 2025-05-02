@@ -1,7 +1,7 @@
 // A2A Server Integration Test
 // This test script checks if the /.well-known/agent.json endpoint returns the expected response
 
-import { default as axios } from 'axios';
+const axios = require('axios');
 
 console.log('Starting A2A server integration test...');
 
