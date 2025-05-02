@@ -200,39 +200,17 @@ app.use('/', (req, res) => {
     return;
   }
   
-  // For static content and regular requests
   logger.info(`Proxying request to frontend: ${req.url}`);
-  
-  // Set a longer timeout for all frontend requests
-  const frontendProxyOptions = {
+  proxy.web(req, res, {
     target: 'http://localhost:5173',
-    changeOrigin: true,
-    followRedirects: true,
-    timeout: 60000,
-    proxyTimeout: 60000,
-    // Add CORS and other necessary headers
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Connection': 'keep-alive'
-    }
-  };
-  
-  proxy.web(req, res, frontendProxyOptions, (err) => {
-    if (err) {
-      logger.error(`Frontend proxy error: ${err.message}`, { error: err });
-      // Send a friendly error response
-      res.writeHead(500, { 'Content-Type': 'text/plain' });
-      res.end('Error connecting to frontend service. Please try again later.');
-    }
+    changeOrigin: true
   });
 });
 
 // Create server
 const server = http.createServer(app);
 
-// Setup WebSocket proxy (we've disabled HMR in Vite config)
+// Setup WebSocket proxy for Vite HMR (Hot Module Replacement)
 server.on('upgrade', (req, socket, head) => {
   logger.info(`WebSocket upgrade request for: ${req.url}`);
   
@@ -249,25 +227,12 @@ server.on('upgrade', (req, socket, head) => {
       target: 'http://localhost:3200',
       changeOrigin: true
     });
-  } else if (req.url.startsWith('/sse')) {
-    // Event Source connections to MCP server
-    logger.info(`Proxying SSE WebSocket: ${req.url}`);
+  } else {
+    // WebSocket connections to frontend (Vite HMR)
     proxy.ws(req, socket, head, {
-      target: 'http://localhost:3400',
-      ws: true,
+      target: 'http://localhost:5173',
       changeOrigin: true
     });
-  } else {
-    // Close other WebSocket connections gracefully
-    // This prevents Vite HMR from constantly retrying
-    logger.info(`Closing unused WebSocket for: ${req.url}`);
-    
-    // Send a proper WebSocket close handshake
-    const message = 'HTTP/1.1 400 Bad Request\r\n' +
-                   'Connection: close\r\n' +
-                   '\r\n';
-    socket.write(message);
-    socket.destroy();
   }
 });
 

@@ -7,14 +7,16 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    // Completely disable HMR for now - this will prevent the WebSocket error
-    // but will require manual refresh for development changes
-    hmr: false,
+    hmr: {
+      // Allow connections from Replit domain
+      clientPort: 443,
+      host: '0.0.0.0',
+    },
     cors: true,
     // Add specific Replit host to allowed hosts
     strictPort: true,
     // Allow all hosts - this is needed when proxying through multiple services
-    allowedHosts: true,
+    allowedHosts: 'all',
   },
   // Allow all hosts including Replit domain
   preview: {
