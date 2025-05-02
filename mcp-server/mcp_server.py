@@ -469,7 +469,19 @@ def main(port: int, transport: str) -> int:
                     }
                 })
                 
-                return JSONResponse(messages)
+                # Structure the response in the format expected by the Anthropic Inspector
+                response = {
+                    "description": "A simple prompt with optional context and topic",
+                    "messages": messages
+                }
+                
+                # Return with proper JSON formatting (indent=2)
+                import json
+                from starlette.responses import Response
+                return Response(
+                    content=json.dumps(response, indent=2),
+                    media_type="application/json"
+                )
                 
             elif prompt_name == "analyzer":
                 # Check for required arguments
@@ -508,7 +520,19 @@ def main(port: int, transport: str) -> int:
                     }
                 ]
                 
-                return JSONResponse(messages)
+                # Structure the response in the format expected by the Anthropic Inspector
+                response = {
+                    "description": "Content analyzer with specific instructions",
+                    "messages": messages
+                }
+                
+                # Return with proper JSON formatting (indent=2)
+                import json
+                from starlette.responses import Response
+                return Response(
+                    content=json.dumps(response, indent=2),
+                    media_type="application/json"
+                )
 
         # Import starlette HTTP methods
         from starlette.routing import Route, Mount
