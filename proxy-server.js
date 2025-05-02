@@ -61,7 +61,7 @@ app.get('/.well-known/*', (req, res) => {
   logger.info(`Proxying A2A well-known request to A2A server: ${req.path}`);
   
   proxy.web(req, res, {
-    target: `http://localhost:3200${req.path}`,
+    target: 'http://localhost:3200',
     changeOrigin: true
   });
 });
@@ -70,7 +70,7 @@ app.post('/tasks', (req, res) => {
   logger.info(`Proxying A2A tasks request to A2A server`);
   
   proxy.web(req, res, {
-    target: 'http://localhost:3200/tasks',
+    target: 'http://localhost:3200',
     changeOrigin: true
   });
 });
