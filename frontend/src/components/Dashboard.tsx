@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Box, Grid, Alert, CircularProgress } from '@mui/material';
 import StatusCard from './StatusCard';
 import A2AStatusCard from './A2AStatusCard';
-import MCPStatusCard from './MCPStatusCard';
+import MCPStatusCard from './MCPStatusCardFixed';
 import { useApiStore } from '../store/apiStore';
 import { useA2AStore } from '../store/a2aStore';
 import { useMCPStore } from '../store/mcpStore';
