@@ -1,14 +1,19 @@
 import os
 import time
 import json
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.docs import get_redoc_html
 from fastapi.responses import HTMLResponse, JSONResponse
 from pydantic import BaseModel, Field
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import uvicorn
 import logging
+import requests
+
+# Import service and models
+from workflow_model import WorkflowList
+from workflow_service import WorkflowService
 
 # Configure logging
 logging.basicConfig(
@@ -148,6 +153,42 @@ async def get_api_methods_legacy():
     """
     logger.info("Legacy API methods requested")
     return await get_api_methods()
+
+# Workflows endpoint to fetch n8n workflows
+@app.get("/api/v1/workflows", response_model=WorkflowList, tags=["Workflows"])
+async def get_workflows():
+    """
+    Fetches a list of workflows from the n8n API.
+    
+    This endpoint interacts with the n8n API to retrieve all workflows.
+    Requires N8N_URL and N8N_API_KEY environment variables to be set.
+    """
+    logger.info("Workflows requested")
+    
+    # Create service instance
+    workflow_service = WorkflowService()
+    
+    # Fetch workflows
+    workflows = await workflow_service.get_workflows()
+    
+    # Handle error case
+    if workflows is None:
+        logger.error("Failed to fetch workflows from n8n API")
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to fetch workflows from n8n API. Check server logs for details."
+        )
+    
+    return workflows
+
+# Backward compatibility for old workflows URL
+@app.get("/api/workflows", response_model=WorkflowList, include_in_schema=False)
+async def get_workflows_legacy():
+    """
+    Legacy workflows endpoint (will be deprecated)
+    """
+    logger.info("Legacy workflows requested")
+    return await get_workflows()
 
 if __name__ == "__main__":
     uvicorn.run(
