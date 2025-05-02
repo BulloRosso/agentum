@@ -1,4 +1,4 @@
-# Multi-Component System with A2A Server Integration
+# Multi-Component System with A2A and MCP Server Integration
 
 This project is a scalable, multi-component system built with modern web technologies.
 
@@ -10,6 +10,7 @@ The system consists of several decoupled components that work together:
 2. **Backend API**: Python/FastAPI service providing API endpoints
 3. **Proxy Server**: Node.js proxy that routes requests to the appropriate services
 4. **A2A Server**: Agent-to-Agent server implementation following the A2A specification
+5. **MCP Server**: Media Control Protocol server providing tools, resources, and prompts
 
 ![Architecture Diagram](./docs/architecture-diagram.svg)
 
@@ -21,12 +22,14 @@ The system consists of several decoupled components that work together:
 - Material-UI for component styling
 - State management with Zustand
 - Responsive dashboard UI
+- Client implementations for both A2A and MCP protocols
 
 ### Backend API
 
 - FastAPI (Python) backend
 - Health check endpoints
-- Data processing services
+- API documentation with Redoc at `/api/doc`
+- API methods listing at `/api/api/v1/methods`
 
 ### Proxy Server
 
@@ -35,6 +38,7 @@ The system consists of several decoupled components that work together:
   - Frontend requests → Vite development server
   - API requests → FastAPI backend
   - A2A requests → A2A server
+  - MCP/SSE requests → MCP server
 - WebSocket support for real-time communication
 
 ### A2A Server
@@ -43,6 +47,13 @@ The system consists of several decoupled components that work together:
 - Enables agent-to-agent communication
 - Provides task management and messaging capabilities
 - Supports both direct requests and streaming updates
+
+### MCP Server (Python)
+
+- Python/FastAPI implementation of the Media Control Protocol
+- Provides tools, resources, and prompts for agents
+- Supports Server-Sent Events (SSE) for real-time updates
+- Dual path structure (`/endpoint` and `/sse/endpoint`)
 
 ## A2A Server Integration
 
