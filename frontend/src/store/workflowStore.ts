@@ -36,11 +36,41 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      console.log('Fetching workflows...');
-      const response = await axios.get<WorkflowsResponse>('/api/v1/workflows/cached');
+      // Using a dummy dataset for now to unblock UI development
+      const dummyData = {
+        data: [
+          {
+            id: "demo-workflow-1",
+            name: "Data Processing Workflow",
+            active: true,
+            tags: [
+              {
+                id: "tag-1",
+                name: "data-processing",
+                createdAt: "2025-05-01T00:00:00Z",
+                updatedAt: "2025-05-01T12:00:00Z"
+              }
+            ]
+          },
+          {
+            id: "demo-workflow-2",
+            name: "Email Notification Workflow",
+            active: false,
+            tags: [
+              {
+                id: "tag-2",
+                name: "notification",
+                createdAt: "2025-05-01T00:00:00Z",
+                updatedAt: "2025-05-01T12:00:00Z"
+              }
+            ]
+          }
+        ],
+        nextCursor: null
+      };
       
       // Sort workflows alphabetically by name
-      const sortedWorkflows = response.data.data.sort((a, b) => 
+      const sortedWorkflows = dummyData.data.sort((a, b) => 
         a.name.localeCompare(b.name)
       );
       

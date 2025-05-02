@@ -179,6 +179,19 @@ app.use('/api', (req, res) => {
   });
 });
 
+// Handle direct v1 API requests (redirects to api/v1/...)
+app.use('/v1', (req, res) => {
+  logger.info(`Handling direct v1 API request: ${req.path}`);
+  
+  // Redirect to the correct path with /api prefix
+  const correctedPath = `/api/v1${req.path}`;
+  proxy.web(req, res, {
+    target: `http://localhost:3000${correctedPath}`,
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
 // Frontend proxy for development
 app.use('/', (req, res) => {
   // Skip if it's an API request or an A2A request
