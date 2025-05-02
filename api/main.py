@@ -12,8 +12,8 @@ import logging
 import requests
 
 # Import service and models
-from workflow_model import WorkflowList
-from workflow_service import WorkflowService
+from models.workflow import WorkflowList
+from services.workflow import WorkflowService
 
 # Configure logging
 logging.basicConfig(
