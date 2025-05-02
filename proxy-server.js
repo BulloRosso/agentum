@@ -179,15 +179,13 @@ app.use('/api', (req, res) => {
   });
 });
 
-// Handle direct v1 API requests (redirects to api/v1/...)
+// Handle direct v1 API requests without changing the URL structure
 app.use('/v1', (req, res) => {
-  logger.info(`Handling direct v1 API request: ${req.path}`);
+  logger.info(`Proxying direct v1 API request: ${req.path}`);
   
-  // Redirect to the correct path with /api prefix
-  const correctedPath = `/api/v1${req.path}`;
+  // Map directly to the API server's /v1 endpoints
   proxy.web(req, res, {
-    target: `http://localhost:3000${correctedPath}`,
-    ignorePath: true,
+    target: 'http://localhost:3000',
     changeOrigin: true
   });
 });

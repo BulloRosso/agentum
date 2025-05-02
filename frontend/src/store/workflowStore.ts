@@ -39,7 +39,7 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
       console.log('Fetching workflows...');
       try {
         // First try to get cached workflows from the proper API endpoint
-        const response = await axios.get<WorkflowsResponse>('/api/v1/workflows/cached');
+        const response = await axios.get<WorkflowsResponse>('/v1/workflows/cached');
         
         if (response.status === 200 && response.data && response.data.data) {
           // Sort workflows alphabetically by name
@@ -62,7 +62,7 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
       // If the first attempt fails, try the main workflows endpoint
       try {
         // Call the regular workflows endpoint which will create the cache if it doesn't exist
-        const response = await axios.get<WorkflowsResponse>('/api/v1/workflows');
+        const response = await axios.get<WorkflowsResponse>('/v1/workflows');
         
         // Sort workflows alphabetically by name
         const sortedWorkflows = response.data.data ? response.data.data.sort((a, b) => 
