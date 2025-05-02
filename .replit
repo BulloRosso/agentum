@@ -23,6 +23,10 @@ args = "Frontend Development Server"
 task = "workflow.run"
 args = "Proxy Server"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "A2A Server"
+
 [[workflows.workflow]]
 name = "API Backend"
 author = "agent"
@@ -50,6 +54,15 @@ task = "shell.exec"
 args = "node proxy-server.js"
 waitForPort = 80
 
+[[workflows.workflow]]
+name = "A2A Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd a2a-server && node simple-server.js"
+waitForPort = 3200
+
 [deployment]
 run = ["sh", "-c", "cd api && pip install -r requirements.txt && python main.py"]
 
@@ -60,6 +73,10 @@ externalPort = 80
 [[ports]]
 localPort = 3000
 externalPort = 3000
+
+[[ports]]
+localPort = 3200
+externalPort = 3001
 
 [[ports]]
 localPort = 5000

@@ -156,14 +156,15 @@ export class A2AServer {
     // Middleware
     app.use(express.json()); // Parse JSON bodies
 
-    // Well-known endpoint to get the agent card
+    // Create a basic route for the well-known agent.json path
     app.get("/.well-known/agent.json", (req: Request, res: Response) => {
-      if (!this.card) {
+      const card = this.card; // Capture card in a local variable
+      if (!card) {
         return res.status(404).json({
           error: "Agent card not configured"
         });
       }
-      res.json(this.card);
+      return res.json(card);
     });
 
     // Mount the endpoint handler at /tasks
