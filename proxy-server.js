@@ -132,9 +132,23 @@ app.get('/.well-known/*', (req, res) => {
   });
 });
 
-// MCP Server endpoints (/sse)
+// MCP Server endpoints (/sse and root for POST messages)
 app.all('/sse*', (req, res) => {
-  logger.info(`Proxying SSE request to MCP server: ${req.path}`);
+  if (req.method === 'POST') {
+    logger.info(`Proxying MCP POST request to MCP server: ${req.path}`);
+  } else {
+    logger.info(`Proxying SSE request to MCP server: ${req.path}`);
+  }
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3400',
+    changeOrigin: true
+  });
+});
+
+// Add specific POST route for MCP message handling to the root endpoint
+app.post('/', (req, res) => {
+  logger.info(`Proxying MCP POST message to MCP server root endpoint`);
   
   proxy.web(req, res, {
     target: 'http://localhost:3400',
