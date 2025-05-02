@@ -426,17 +426,50 @@ def main(port: int, transport: str) -> int:
                 return JSONResponse({"error": "Invalid JSON request"}, status_code=400)
                 
             if prompt_name == "simple":
-                # Generate a sample response
-                response = [{
+                # Generate a response matching the expected format in the inspector
+                messages = []
+                
+                # Create user messages based on provided context and topic
+                if "context" in body:
+                    messages.append({
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": f"Here is some relevant context: {body.get('context')}"
+                        }
+                    })
+                    
+                if "topic" in body:
+                    messages.append({
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": f"Please help me with the following topic: {body.get('topic')}"
+                        }
+                    })
+                
+                # If no context or topic provided, add a generic user message
+                if len(messages) == 0:
+                    messages.append({
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": "Can you help me with a general question?"
+                        }
+                    })
+                
+                # Add the assistant's response
+                messages.append({
                     "role": "assistant",
                     "content": {
                         "type": "text",
                         "text": "I'm here to help! " + 
-                               (f"I'll consider the context: {body.get('context', 'No context provided')}. " if "context" in body else "") +
-                               (f"Let me address your topic: {body.get('topic', 'general questions')}." if "topic" in body else "What would you like to know?")
+                               (f"I'll consider the context: {body.get('context')}. " if "context" in body else "") +
+                               (f"Let me address your topic: {body.get('topic')}." if "topic" in body else "What would you like to know?")
                     }
-                }]
-                return JSONResponse(response)
+                })
+                
+                return JSONResponse(messages)
                 
             elif prompt_name == "analyzer":
                 # Check for required arguments
@@ -444,18 +477,38 @@ def main(port: int, transport: str) -> int:
                     return JSONResponse({"error": "Missing required argument 'content'"}, status_code=400)
                 if "instructions" not in body:
                     return JSONResponse({"error": "Missing required argument 'instructions'"}, status_code=400)
-                    
-                # Generate a sample analyzer response
-                response = [{
-                    "role": "assistant",
-                    "content": {
-                        "type": "text",
-                        "text": f"Analysis based on instructions: '{body['instructions']}':\n\n" +
-                               f"Content analyzed: '{body['content']}'\n\n" +
-                               f"Sample analysis results: This is a demonstration of the analyzer prompt functionality."
+                
+                # Generate messages with the same format as simple prompt
+                messages = [
+                    # User message with content to analyze
+                    {
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": f"Here is content to analyze: {body['content']}"
+                        }
+                    },
+                    # User message with instructions
+                    {
+                        "role": "user",
+                        "content": {
+                            "type": "text",
+                            "text": f"Please analyze according to these instructions: {body['instructions']}"
+                        }
+                    },
+                    # Assistant's response with analysis
+                    {
+                        "role": "assistant",
+                        "content": {
+                            "type": "text",
+                            "text": f"Analysis based on instructions: '{body['instructions']}':\n\n" +
+                                   f"Content analyzed: '{body['content']}'\n\n" +
+                                   f"Sample analysis results: This is a demonstration of the analyzer prompt functionality."
+                        }
                     }
-                }]
-                return JSONResponse(response)
+                ]
+                
+                return JSONResponse(messages)
 
         # Import starlette HTTP methods
         from starlette.routing import Route, Mount
