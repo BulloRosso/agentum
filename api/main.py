@@ -196,52 +196,242 @@ async def test_storage():
     """
     Test endpoint for storage service functionality
     
-    Creates a test text file, lists all files, and returns their information.
-    Useful to verify that the storage service is working properly.
+    Creates test text and binary files, performs basic operations on them,
+    and returns comprehensive test results. Useful to verify that the
+    storage service is working properly.
     """
-    from services.storage import StorageTextFile
+    from services.storage import StorageTextFile, StorageBinaryFile
+    import os
+    import tempfile
     
     logger.info("Storage test requested")
     
+    results = {
+        "text_storage": {},
+        "binary_storage": {},
+        "success": True
+    }
+    
+    # Generate a unique test ID to avoid conflicts
+    import random
+    import string
+    test_id = ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+    
+    # Test text storage
     try:
-        # Initialize storage service
-        storage = StorageTextFile()
+        # Initialize text storage service
+        text_storage = StorageTextFile()
         
-        # Create a test file
-        test_file_path = "test.json"
-        test_data = {
-            "success": True,
+        # Test files
+        text_file_path = f"test_file_{test_id}.txt"
+        json_file_path = f"test_json_{test_id}.json"
+        
+        # Test content
+        text_content = f"Hello, World! Test ID: {test_id}"
+        json_content = {
             "message": "Storage service is working correctly",
+            "test_id": test_id,
             "timestamp": time.time()
         }
         
-        # Save the test file
-        success = storage.create_json(test_file_path, test_data)
+        # Test 1: Create and get text file
+        create_result = text_storage.create(text_file_path, text_content)
+        results["text_storage"]["create_text"] = create_result
         
-        if not success:
-            return {
-                "success": False, 
-                "message": "Failed to create test file",
-                "files": []
+        if create_result:
+            get_result = text_storage.get(text_file_path)
+            results["text_storage"]["get_text"] = {
+                "success": get_result == text_content,
+                "expected": text_content,
+                "actual": get_result
             }
         
-        # List all files
-        all_files = storage.list_files()
+        # Test 2: Create and get JSON file
+        create_json_result = text_storage.create_json(json_file_path, json_content)
+        results["text_storage"]["create_json"] = create_json_result
         
-        return {
-            "success": True,
-            "message": "Storage service test completed successfully",
-            "files": all_files,
-            "test_file_created": test_file_path
+        if create_json_result:
+            get_json_result = text_storage.get_json(json_file_path)
+            results["text_storage"]["get_json"] = {
+                "success": isinstance(get_json_result, dict) and get_json_result.get("test_id") == test_id,
+                "expected": json_content,
+                "actual": get_json_result
+            }
+        
+        # Test 3: Update a text file
+        updated_text = f"Updated content {test_id}"
+        update_result = text_storage.update(text_file_path, updated_text)
+        results["text_storage"]["update_text"] = update_result
+        
+        if update_result:
+            updated_content = text_storage.get(text_file_path)
+            results["text_storage"]["updated_content"] = {
+                "success": updated_content == updated_text,
+                "expected": updated_text,
+                "actual": updated_content
+            }
+        
+        # Test 4: List files
+        file_list = text_storage.list_files()
+        results["text_storage"]["list_files"] = {
+            "success": text_file_path in file_list and json_file_path in file_list,
+            "files": file_list
         }
         
+        # Test 5: Delete files
+        delete_result = text_storage.delete(text_file_path)
+        results["text_storage"]["delete_text"] = delete_result
+        
+        delete_json_result = text_storage.delete(json_file_path)
+        results["text_storage"]["delete_json"] = delete_json_result
+        
+        # Overall success
+        text_success = all([
+            results["text_storage"].get("create_text", False),
+            results["text_storage"].get("get_text", {}).get("success", False),
+            results["text_storage"].get("create_json", False),
+            results["text_storage"].get("get_json", {}).get("success", False),
+            results["text_storage"].get("update_text", False),
+            results["text_storage"].get("updated_content", {}).get("success", False),
+            results["text_storage"].get("list_files", {}).get("success", False),
+            results["text_storage"].get("delete_text", False),
+            results["text_storage"].get("delete_json", False)
+        ])
+        
+        results["text_storage"]["overall"] = "Success" if text_success else "Failed"
+        if not text_success:
+            results["success"] = False
+            
     except Exception as e:
-        logger.error(f"Error in storage test: {str(e)}")
-        return {
-            "success": False,
-            "message": f"Storage test failed: {str(e)}",
-            "files": []
+        logger.error(f"Error in text storage test: {str(e)}")
+        results["text_storage"]["error"] = str(e)
+        results["text_storage"]["overall"] = "Failed with exception"
+        results["success"] = False
+    
+    # Test binary storage
+    try:
+        # Initialize binary storage service
+        binary_storage = StorageBinaryFile()
+        
+        # Test files
+        binary_file_path = f"test_binary_{test_id}.bin"
+        
+        # Test content (simple binary data)
+        binary_content = f"Binary test data {test_id}".encode('utf-8')
+        
+        # Test 1: Create and get binary file
+        create_result = binary_storage.create(binary_file_path, binary_content)
+        results["binary_storage"]["create_binary"] = create_result
+        
+        if create_result:
+            get_result = binary_storage.get(binary_file_path)
+            results["binary_storage"]["get_binary"] = {
+                "success": get_result == binary_content,
+                "expected_length": len(binary_content),
+                "actual_length": len(get_result) if get_result else 0
+            }
+        
+        # Test 2: Update binary file
+        updated_binary = f"Updated binary content {test_id}".encode('utf-8')
+        update_result = binary_storage.update(binary_file_path, updated_binary)
+        results["binary_storage"]["update_binary"] = update_result
+        
+        if update_result:
+            updated_content = binary_storage.get(binary_file_path)
+            results["binary_storage"]["updated_binary"] = {
+                "success": updated_content == updated_binary,
+                "expected_length": len(updated_binary),
+                "actual_length": len(updated_content) if updated_content else 0
+            }
+        
+        # Test 3: Get to file and create from file
+        with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+            temp_path = temp_file.name
+            
+        try:
+            # Download to local file
+            get_to_file_result = binary_storage.get_to_file(binary_file_path, temp_path)
+            results["binary_storage"]["get_to_file"] = get_to_file_result
+            
+            if get_to_file_result:
+                # Verify content
+                with open(temp_path, 'rb') as f:
+                    local_content = f.read()
+                
+                results["binary_storage"]["local_file_content"] = {
+                    "success": local_content == updated_binary,
+                    "expected_length": len(updated_binary),
+                    "actual_length": len(local_content) if local_content else 0
+                }
+                
+                # Create from local file
+                new_path = f"test_from_file_{test_id}.bin"
+                create_from_file_result = binary_storage.create_from_file(new_path, temp_path)
+                results["binary_storage"]["create_from_file"] = create_from_file_result
+                
+                if create_from_file_result:
+                    # Verify content
+                    new_content = binary_storage.get(new_path)
+                    results["binary_storage"]["new_file_content"] = {
+                        "success": new_content == updated_binary,
+                        "expected_length": len(updated_binary),
+                        "actual_length": len(new_content) if new_content else 0
+                    }
+                    
+                    # Delete the new file
+                    binary_storage.delete(new_path)
+        except Exception as e:
+            logger.error(f"Error in temporary file operations: {str(e)}")
+            results["binary_storage"]["temp_file_error"] = str(e)
+            results["success"] = False
+        finally:
+            # Clean up the local file
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+        
+        # Test 4: List files
+        file_list = binary_storage.list_files()
+        results["binary_storage"]["list_files"] = {
+            "success": binary_file_path in file_list,
+            "files": file_list
         }
+        
+        # Test 5: Delete file
+        delete_result = binary_storage.delete(binary_file_path)
+        results["binary_storage"]["delete_binary"] = delete_result
+        
+        # Overall success
+        binary_success = all([
+            results["binary_storage"].get("create_binary", False),
+            results["binary_storage"].get("get_binary", {}).get("success", False),
+            results["binary_storage"].get("update_binary", False),
+            results["binary_storage"].get("updated_binary", {}).get("success", False),
+            results["binary_storage"].get("get_to_file", False),
+            results["binary_storage"].get("local_file_content", {}).get("success", False),
+            results["binary_storage"].get("create_from_file", False),
+            results["binary_storage"].get("new_file_content", {}).get("success", False),
+            results["binary_storage"].get("list_files", {}).get("success", False),
+            results["binary_storage"].get("delete_binary", False)
+        ])
+        
+        results["binary_storage"]["overall"] = "Success" if binary_success else "Failed"
+        if not binary_success:
+            results["success"] = False
+            
+    except Exception as e:
+        logger.error(f"Error in binary storage test: {str(e)}")
+        results["binary_storage"]["error"] = str(e)
+        results["binary_storage"]["overall"] = "Failed with exception"
+        results["success"] = False
+    
+    # Overall test results
+    results["timestamp"] = time.time()
+    if results["success"]:
+        results["message"] = "Storage service tests completed successfully"
+    else:
+        results["message"] = "One or more storage tests failed"
+    
+    return results
 
 if __name__ == "__main__":
     uvicorn.run(
