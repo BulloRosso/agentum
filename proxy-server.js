@@ -200,6 +200,24 @@ app.use('/', (req, res) => {
     return;
   }
   
+  // Special handling for Vite HMR related paths
+  if (req.url.startsWith('/@vite') || 
+      req.url.includes('.hot-update.') || 
+      req.url.includes('vite')) {
+    logger.info(`Proxying Vite HMR request to frontend: ${req.url}`);
+    proxy.web(req, res, {
+      target: 'http://localhost:5173',
+      changeOrigin: true,
+      followRedirects: true,
+      // Add necessary headers to help Vite HMR
+      headers: {
+        'Connection': 'keep-alive',
+        'Origin': 'http://localhost:5173'
+      }
+    });
+    return;
+  }
+  
   logger.info(`Proxying request to frontend: ${req.url}`);
   proxy.web(req, res, {
     target: 'http://localhost:5173',
@@ -227,8 +245,24 @@ server.on('upgrade', (req, socket, head) => {
       target: 'http://localhost:3200',
       changeOrigin: true
     });
+  } else if (req.url.startsWith('/@vite/hmr') || req.url.includes('vite')) {
+    // Specifically handle Vite HMR WebSocket connections
+    logger.info(`Proxying Vite HMR WebSocket: ${req.url}`);
+    proxy.ws(req, socket, head, {
+      target: 'http://localhost:5173',
+      ws: true,
+      changeOrigin: true,
+      followRedirects: true,
+      // Increase the timeout for WebSocket connections
+      timeout: 60000, 
+      // Add additional headers for WebSocket handshake
+      headers: {
+        'Origin': 'http://localhost:5173',
+        'Host': 'localhost:5173'
+      }
+    });
   } else {
-    // WebSocket connections to frontend (Vite HMR)
+    // Other WebSocket connections to frontend
     proxy.ws(req, socket, head, {
       target: 'http://localhost:5173',
       changeOrigin: true
