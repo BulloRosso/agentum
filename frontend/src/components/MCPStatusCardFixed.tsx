@@ -27,7 +27,7 @@ import MCPTestModal, { TestType } from './MCPTestModal';
 
 const MCPStatusCard: React.FC = () => {
   const { status, tools, resources, prompts, isLoading, error, fetchAll } = useMCPStore();
-  const { isConnected, connecting } = useSseConnection();
+  const { isConnected } = useSseConnection();
   
   // Local state for expand/collapse sections
   const [expandedSections, setExpandedSections] = React.useState({
@@ -113,8 +113,8 @@ const MCPStatusCard: React.FC = () => {
                   : 'Server metrics loading...'}
               </Typography>
               <Chip 
-                label={isConnected ? 'connected' : (connecting ? 'connecting' : (status?.status === 'operational' ? 'operational' : 'offline'))} 
-                color={isConnected ? 'success' : (connecting ? 'warning' : (status?.status === 'operational' ? 'success' : 'error'))} 
+                label={isConnected ? 'operational' : (status?.status === 'operational' ? 'operational' : 'Offline')} 
+                color={isConnected ? 'success' : (status?.status === 'operational' ? 'success' : 'error')} 
                 size="small"
                 icon={isConnected ? <CheckCircleIcon /> : undefined}
               />
@@ -308,16 +308,7 @@ const MCPStatusCard: React.FC = () => {
           </>
         )}
         
-        {connecting && (
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', py: 2 }}>
-            <CircularProgress size={24} sx={{ mb: 1 }} />
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Connecting to MCP server...
-            </Typography>
-          </Box>
-        )}
-        
-        {!isLoading && !status && !error && !isConnected && !connecting && (
+        {!isLoading && !status && !error && !isConnected && (
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', py: 2 }}>
             <ErrorIcon color="warning" sx={{ mb: 1 }} />
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
