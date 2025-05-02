@@ -115,7 +115,7 @@ const Workflows: React.FC = () => {
     <Card sx={{ mb: 3 }}>
       <CardContent>
         <Typography variant="h6" component="div" gutterBottom>
-          Workflows
+          Workflows (n8n)
         </Typography>
         
         {isLoading && workflows.length === 0 && (

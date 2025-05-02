@@ -51,7 +51,7 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <Box sx={{ mt: 4 }}>
+    <Box>
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
           Error loading API status: {error}
