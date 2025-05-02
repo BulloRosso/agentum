@@ -7,12 +7,9 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 5173,
-    hmr: {
-      // Configuration for working with Replit's reverse proxy
-      path: '/@vite/hmr',
-      clientPort: 80,
-      host: 'localhost'
-    },
+    // Completely disable HMR for now - this will prevent the WebSocket error
+    // but will require manual refresh for development changes
+    hmr: false,
     cors: true,
     // Add specific Replit host to allowed hosts
     strictPort: true,
