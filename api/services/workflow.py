@@ -34,7 +34,7 @@ class WorkflowService:
         
         try:
             # Construct the full URL for the workflows endpoint
-            url = f"{self.n8n_url}/workflows"
+            url = f"{self.n8n_url}/api/v1/workflows"
             
             # Set up headers with API key
             headers = {
