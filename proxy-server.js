@@ -75,6 +75,16 @@ app.post('/tasks', (req, res) => {
   });
 });
 
+// Add all methods for /agent-card route to A2A server
+app.use('/agent-card', (req, res) => {
+  logger.info(`Proxying agent-card request to A2A server: ${req.method} ${req.path}`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3200',
+    changeOrigin: true
+  });
+});
+
 // Generic API endpoint proxy for all other API routes
 app.use('/api', (req, res) => {
   if (req.path === '/v1/health') {
@@ -98,7 +108,8 @@ app.use('/', (req, res) => {
   // Skip if it's an API request or an A2A request
   if (req.url.startsWith('/api/') || 
       req.url.startsWith('/.well-known/') || 
-      req.url === '/tasks') {
+      req.url === '/tasks' ||
+      req.url.startsWith('/agent-card')) {
     return;
   }
   
@@ -123,7 +134,7 @@ server.on('upgrade', (req, socket, head) => {
       target: 'http://localhost:3000',
       changeOrigin: true
     });
-  } else if (req.url.startsWith('/.well-known/') || req.url === '/tasks') {
+  } else if (req.url.startsWith('/.well-known/') || req.url === '/tasks' || req.url.startsWith('/agent-card')) {
     // WebSocket connections to A2A server
     proxy.ws(req, socket, head, {
       target: 'http://localhost:3200',

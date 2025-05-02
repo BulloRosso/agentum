@@ -54,7 +54,8 @@ function runTest(scriptName) {
 // List of test scripts to run (in order)
 const testScripts = [
   'a2a.js',             // Direct A2A server connection tests
-  'a2a-proxy.js'        // Proxy-based A2A server connection tests
+  'a2a-proxy.js',       // Proxy-based A2A server connection tests
+  'agent-card-test.js'  // Agent Card route tests
 ];
 
 // Run all tests and report results
