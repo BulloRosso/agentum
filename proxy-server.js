@@ -213,24 +213,38 @@ const server = http.createServer(app);
 // Setup WebSocket proxy for Vite HMR (Hot Module Replacement)
 server.on('upgrade', (req, socket, head) => {
   logger.info(`WebSocket upgrade request for: ${req.url}`);
-  
+
   // Route WebSocket connections to the appropriate target
-  if (req.url.startsWith('/api/')) {
+  if (req.url.startsWith('/ws') || 
+      req.url.startsWith('/@vite/') || 
+      req.url.includes('vite-hmr')) {
+    // Vite HMR WebSocket connections
+    logger.info(`Routing HMR WebSocket connection to Vite server: ${req.url}`);
+    proxy.ws(req, socket, head, {
+      target: 'ws://localhost:5173',
+      ws: true,
+      changeOrigin: true
+    });
+  } else if (req.url.startsWith('/api/')) {
     // WebSocket connections to API routes
     proxy.ws(req, socket, head, {
       target: 'http://localhost:3000',
       changeOrigin: true
     });
-  } else if (req.url.startsWith('/.well-known/') || req.url === '/tasks' || req.url.startsWith('/agent-card')) {
+  } else if (req.url.startsWith('/.well-known/') || 
+             req.url === '/tasks' || 
+             req.url.startsWith('/agent-card')) {
     // WebSocket connections to A2A server
     proxy.ws(req, socket, head, {
       target: 'http://localhost:3200',
       changeOrigin: true
     });
   } else {
-    // WebSocket connections to frontend (Vite HMR)
+    // Other WebSocket connections to frontend
+    logger.info(`Routing other WebSocket connection to frontend: ${req.url}`);
     proxy.ws(req, socket, head, {
-      target: 'http://localhost:5173',
+      target: 'ws://localhost:5173',
+      ws: true,
       changeOrigin: true
     });
   }
