@@ -390,6 +390,29 @@ def main(port: int, transport: str) -> int:
                 
             return JSONResponse(details)
             
+        # Handle tool execution requests
+        async def handle_tool_post(request):
+            tool_name = request.path_params["tool_name"]
+            
+            if tool_name != "fetch":
+                return JSONResponse({"error": f"Tool {tool_name} not found"}, status_code=404)
+            
+            try:
+                body = await request.json()
+            except:
+                return JSONResponse({"error": "Invalid JSON request"}, status_code=400)
+                
+            if "url" not in body:
+                return JSONResponse({"error": "Missing required argument 'url'"}, status_code=400)
+                
+            try:
+                result = await fetch_website(body["url"])
+                # Convert to the format expected by the client
+                response = [{"type": "text", "text": item.text} for item in result if item.type == "text"]
+                return JSONResponse(response)
+            except Exception as e:
+                return JSONResponse({"error": f"Error fetching website: {str(e)}"}, status_code=500)
+        
         # Process prompt execution requests
         async def handle_prompt_post(request):
             prompt_name = request.path_params["prompt_name"]
@@ -448,6 +471,7 @@ def main(port: int, transport: str) -> int:
                 Route("/sse/resources/{resource_name}", endpoint=handle_resource_content),
                 Route("/sse/prompts/{prompt_name}", endpoint=handle_prompt_get, methods=["GET"]),
                 Route("/sse/prompts/{prompt_name}", endpoint=handle_prompt_post, methods=["POST"]),
+                Route("/sse/tools/{tool_name}", endpoint=handle_tool_post, methods=["POST"]),
                 Mount("/", app=sse.handle_post_message),
             ],
         )
