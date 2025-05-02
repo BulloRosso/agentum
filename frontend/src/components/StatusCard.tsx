@@ -8,7 +8,9 @@ import {
   Table,
   TableBody,
   TableRow,
-  TableCell
+  TableCell,
+  Alert,
+  Divider
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ErrorIcon from '@mui/icons-material/Error';
@@ -23,13 +25,17 @@ interface StatusCardProps {
   status: string;
   isOperational: boolean;
   details: DetailItem[];
+  error?: string | null;
+  children?: React.ReactNode;
 }
 
 const StatusCard: React.FC<StatusCardProps> = ({ 
   title, 
   status, 
   isOperational,
-  details 
+  details,
+  error,
+  children
 }) => {
   return (
     <Card className="shadow-lg h-full">
@@ -45,6 +51,12 @@ const StatusCard: React.FC<StatusCardProps> = ({
             size="small"
           />
         </Box>
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
+        )}
         
         <Box sx={{ mt: 2 }}>
           <Table size="small">
@@ -66,6 +78,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
             </TableBody>
           </Table>
         </Box>
+        
+        {children && (
+          <>
+            <Divider sx={{ my: 2 }} />
+            {children}
+          </>
+        )}
       </CardContent>
     </Card>
   );

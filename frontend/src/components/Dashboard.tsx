@@ -1,7 +1,9 @@
 import React, { useEffect } from 'react';
-import { Box, Grid, Typography, Alert, CircularProgress } from '@mui/material';
+import { Box, Grid, Alert, CircularProgress, Typography } from '@mui/material';
 import StatusCard from './StatusCard';
+import A2AStatusCard from './A2AStatusCard';
 import { useApiStore } from '../store/apiStore';
+import { useA2AStore } from '../store/a2aStore';
 
 const Dashboard: React.FC = () => {
   const { 
@@ -12,19 +14,23 @@ const Dashboard: React.FC = () => {
     isLoading, 
     error 
   } = useApiStore();
+  
+  const { fetchAgents } = useA2AStore();
 
   useEffect(() => {
     // Initial fetch
     fetchApiHealth();
+    fetchAgents();
     
     // Set up polling interval (every 30 seconds)
     const intervalId = setInterval(() => {
       fetchApiHealth();
+      fetchAgents();
     }, 30000);
     
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, [fetchApiHealth]);
+  }, [fetchApiHealth, fetchAgents]);
 
   const formatUptime = (seconds: number): string => {
     if (!seconds) return 'Unknown';
