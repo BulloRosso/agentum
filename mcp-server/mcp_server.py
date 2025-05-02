@@ -154,6 +154,31 @@ async def status():
 async def list_tools():
     return SAMPLE_TOOLS
 
+# Tool execution endpoint - both base and SSE paths
+@app.post("/tools/{name}")
+@app.post("/sse/tools/{name}")
+async def execute_tool(name: str, args: Dict[str, Any]):
+    tool = next((t for t in SAMPLE_TOOLS if t["name"] == name), None)
+    if not tool:
+        raise HTTPException(status_code=404, detail=f"Unknown tool: {name}")
+    
+    # Validate required arguments
+    for required_arg in tool["inputSchema"].get("required", []):
+        if required_arg not in args:
+            raise HTTPException(status_code=400, detail=f"Missing required argument: {required_arg}")
+    
+    # Execute different tools based on name
+    if name == "fetch":
+        url = args.get("url")
+        return [{"type": "text", "text": f"Fetched content from {url} (simulated response)"}]
+    elif name == "saveFile":
+        filename = args.get("filename")
+        content = args.get("content", "")
+        content_length = len(content) if content else 0
+        return [{"type": "text", "text": f"Saved {content_length} characters to {filename} (simulated response)"}]
+    else:
+        raise HTTPException(status_code=501, detail=f"Tool implementation not available: {name}")
+
 # List resources endpoint - both base and SSE paths
 @app.get("/resources")
 @app.get("/sse/resources")
@@ -225,10 +250,37 @@ async def get_prompt(name: str, arguments: Dict[str, Any]):
     if not prompt:
         raise HTTPException(status_code=404, detail=f"Unknown prompt: {name}")
     
+    # Validate required arguments
+    for arg in prompt["arguments"]:
+        if arg.get("required", False) and arg["name"] not in arguments:
+            raise HTTPException(status_code=400, detail=f"Missing required argument: {arg['name']}")
+    
     if name == "simple":
         context = arguments.get("context")
         topic = arguments.get("topic")
         return create_messages(context, topic)
+    elif name == "analyzer":
+        content = arguments.get("content")
+        instructions = arguments.get("instructions")
+        
+        # Create a conversation with the analyzer prompt
+        messages = [
+            {
+                "role": "user",
+                "content": {
+                    "type": "text",
+                    "text": f"I need you to analyze this content: {content}\n\nHere are your instructions: {instructions}"
+                }
+            },
+            {
+                "role": "assistant",
+                "content": {
+                    "type": "text",
+                    "text": f"I've analyzed the content based on your instructions. Here's what I found: (This is a simulated response for the analyzer prompt)"
+                }
+            }
+        ]
+        return messages
     
     raise HTTPException(status_code=400, detail="Not implemented for this prompt")
 
