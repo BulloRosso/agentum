@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -7,14 +7,30 @@ import {
   ListItemText,
   Divider,
   Chip,
-  CircularProgress
+  CircularProgress,
+  Button
 } from '@mui/material';
 import StatusCard from './StatusCard';
+import AgentTestModal from './AgentTestModal';
 import { useA2AStore } from '../store/a2aStore';
 import { AgentCard } from '../api/a2aApi';
 
 const A2AStatusCard: React.FC = () => {
-  const { status, agents, isLoading, error } = useA2AStore();
+  const { status, agents, isLoading, error, fetchStatus } = useA2AStore();
+  const [selectedAgent, setSelectedAgent] = useState<AgentCard | null>(null);
+  const [testModalOpen, setTestModalOpen] = useState(false);
+
+  // Fetch A2A status when component mounts
+  useEffect(() => {
+    fetchStatus();
+    
+    // Set up polling for status updates
+    const intervalId = setInterval(() => {
+      fetchStatus();
+    }, 30000); // Poll every 30 seconds
+    
+    return () => clearInterval(intervalId);
+  }, [fetchStatus]);
 
   const getStatusDetails = () => {
     const details = [
@@ -47,7 +63,24 @@ const A2AStatusCard: React.FC = () => {
         {agents.map((agent: AgentCard, index: number) => (
           <React.Fragment key={`agent-${index}`}>
             {index > 0 && <Divider component="li" />}
-            <ListItem alignItems="flex-start" sx={{ px: 0 }}>
+            <ListItem 
+              alignItems="flex-start" 
+              sx={{ px: 0 }}
+              secondaryAction={
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="primary"
+                  onClick={() => {
+                    setSelectedAgent(agent);
+                    setTestModalOpen(true);
+                  }}
+                  sx={{ mt: 1 }}
+                >
+                  Test Agent
+                </Button>
+              }
+            >
               <ListItemText
                 primary={
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -121,20 +154,30 @@ const A2AStatusCard: React.FC = () => {
   };
 
   return (
-    <StatusCard
-      title="A2A Server Status"
-      status={status}
-      isOperational={status === 'operational'}
-      details={getStatusDetails()}
-      error={error}
-    >
-      <Box sx={{ mt: 2 }}>
-        <Typography variant="subtitle2" gutterBottom>
-          Available Agents
-        </Typography>
-        {renderAgentsList()}
-      </Box>
-    </StatusCard>
+    <>
+      <StatusCard
+        title="A2A Server Status"
+        status={status}
+        isOperational={status === 'operational'}
+        details={getStatusDetails()}
+        error={error}
+      >
+        <Box sx={{ mt: 2 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            Available Agents
+          </Typography>
+          {renderAgentsList()}
+        </Box>
+      </StatusCard>
+
+      {selectedAgent && (
+        <AgentTestModal
+          open={testModalOpen}
+          onClose={() => setTestModalOpen(false)}
+          agent={selectedAgent}
+        />
+      )}
+    </>
   );
 };
 

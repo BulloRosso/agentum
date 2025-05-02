@@ -1,60 +1,39 @@
 import { create } from 'zustand';
-import { fetchA2AStatus, fetchAgents, AgentCard } from '../api/a2aApi';
+import { fetchA2AStatus } from '../api/a2aApi';
+import type { AgentCard } from '../api/a2aApi';
 
-interface A2AStore {
-  status: 'operational' | 'error' | 'unknown';
-  agents: AgentCard[];
+interface A2AState {
+  status: 'operational' | 'degraded' | 'down' | 'unknown';
   isLoading: boolean;
   error: string | null;
-  fetchA2AStatus: () => Promise<void>;
-  fetchAgents: () => Promise<void>;
+  agents: AgentCard[];
+  lastChecked: string;
+  fetchStatus: () => Promise<void>;
 }
 
-export const useA2AStore = create<A2AStore>((set) => ({
+export const useA2AStore = create<A2AState>((set) => ({
   status: 'unknown',
-  agents: [],
   isLoading: false,
   error: null,
+  agents: [],
+  lastChecked: '',
   
-  fetchA2AStatus: async () => {
+  fetchStatus: async () => {
     set({ isLoading: true, error: null });
     
     try {
-      await fetchA2AStatus();
-      
-      set({
-        status: 'operational',
+      const data = await fetchA2AStatus();
+      set({ 
+        status: data.status, 
+        agents: data.agents,
+        lastChecked: new Date().toISOString(),
         isLoading: false
       });
     } catch (error) {
-      console.error('Error in fetchA2AStatus:', error);
-      
-      set({
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Failed to fetch A2A status',
-        isLoading: false
-      });
-    }
-  },
-  
-  fetchAgents: async () => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      const agents = await fetchAgents();
-      
-      set({
-        agents,
-        status: 'operational',
-        isLoading: false
-      });
-    } catch (error) {
-      console.error('Error in fetchAgents:', error);
-      
-      set({
-        agents: [],
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Failed to fetch agents',
+      console.error('Error fetching A2A status:', error);
+      set({ 
+        status: 'down', 
+        error: error instanceof Error ? error.message : String(error),
         isLoading: false
       });
     }
