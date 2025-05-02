@@ -73,7 +73,7 @@ const Workflows: React.FC = () => {
               </ListItemIcon>
               <ListItemText 
                 primary={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <Typography variant="body2" component="span">
                       {workflow.name}
                     </Typography>

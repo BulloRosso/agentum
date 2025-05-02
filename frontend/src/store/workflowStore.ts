@@ -36,52 +36,54 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      // Using a dummy dataset for now to unblock UI development
-      const dummyData = {
-        data: [
-          {
-            id: "demo-workflow-1",
-            name: "Data Processing Workflow",
-            active: true,
-            tags: [
-              {
-                id: "tag-1",
-                name: "data-processing",
-                createdAt: "2025-05-01T00:00:00Z",
-                updatedAt: "2025-05-01T12:00:00Z"
-              }
-            ]
-          },
-          {
-            id: "demo-workflow-2",
-            name: "Email Notification Workflow",
-            active: false,
-            tags: [
-              {
-                id: "tag-2",
-                name: "notification",
-                createdAt: "2025-05-01T00:00:00Z",
-                updatedAt: "2025-05-01T12:00:00Z"
-              }
-            ]
-          }
-        ],
-        nextCursor: null
-      };
+      console.log('Fetching workflows...');
+      try {
+        // First try to get cached workflows from the proper API endpoint
+        const response = await axios.get<WorkflowsResponse>('/api/v1/workflows/cached');
+        
+        if (response.status === 200 && response.data && response.data.data) {
+          // Sort workflows alphabetically by name
+          const sortedWorkflows = response.data.data.sort((a, b) => 
+            a.name.localeCompare(b.name)
+          );
+          
+          set({ 
+            workflows: sortedWorkflows,
+            isLoading: false 
+          });
+          
+          console.log(`Successfully fetched ${sortedWorkflows.length} workflows from cache`);
+          return;
+        }
+      } catch (apiError) {
+        console.error('Error fetching workflows from cached API:', apiError);
+      }
       
-      // Sort workflows alphabetically by name
-      const sortedWorkflows = dummyData.data.sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
-      
-      set({ 
-        workflows: sortedWorkflows,
-        isLoading: false 
-      });
-      
-      console.log(`Successfully fetched ${sortedWorkflows.length} workflows`);
+      // If the first attempt fails, try the main workflows endpoint
+      try {
+        // Call the regular workflows endpoint which will create the cache if it doesn't exist
+        const response = await axios.get<WorkflowsResponse>('/api/v1/workflows');
+        
+        // Sort workflows alphabetically by name
+        const sortedWorkflows = response.data.data ? response.data.data.sort((a, b) => 
+          a.name.localeCompare(b.name)
+        ) : [];
+        
+        set({ 
+          workflows: sortedWorkflows,
+          isLoading: false 
+        });
+        
+        console.log(`Successfully fetched ${sortedWorkflows.length} workflows from n8n API`);
+      } catch (fallbackError) {
+        console.error('Fallback error fetching workflows:', fallbackError);
+        set({
+          error: "Failed to fetch workflows. Please try again later.",
+          isLoading: false
+        });
+      }
     } catch (error) {
-      console.error('Error fetching workflows:', error);
+      console.error('Error in workflow fetch process:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred while fetching workflows',
         isLoading: false 
