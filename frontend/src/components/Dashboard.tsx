@@ -1,8 +1,8 @@
 import React, { useEffect } from 'react';
 import { Box, Grid, Alert, CircularProgress } from '@mui/material';
-import StatusCard from './StatusCard';
 import A2AStatusCard from './A2AStatusCard';
 import MCPStatusCard from './MCPStatusCardFixed';
+import APIStatusCard from './APIStatusCard';
 import { useApiStore } from '../store/apiStore';
 import { useA2AStore } from '../store/a2aStore';
 import { useMCPStore } from '../store/mcpStore';
@@ -10,9 +10,8 @@ import { useMCPStore } from '../store/mcpStore';
 const Dashboard: React.FC = () => {
   const { 
     apiStatus, 
-    apiVersion, 
-    apiUptime, 
     fetchApiHealth, 
+    fetchApiMethods,
     isLoading, 
     error 
   } = useApiStore();
@@ -23,6 +22,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // Initial fetch
     fetchApiHealth();
+    fetchApiMethods();
     fetchStatus();
     fetchMCPStatus();
     
@@ -35,23 +35,7 @@ const Dashboard: React.FC = () => {
     
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, [fetchApiHealth, fetchStatus, fetchMCPStatus]);
-
-  const formatUptime = (seconds: number): string => {
-    if (!seconds) return 'Unknown';
-    
-    const days = Math.floor(seconds / 86400);
-    const hours = Math.floor((seconds % 86400) / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = Math.floor(seconds % 60);
-    
-    return [
-      days > 0 ? `${days}d` : '',
-      hours > 0 ? `${hours}h` : '',
-      minutes > 0 ? `${minutes}m` : '',
-      `${secs}s`
-    ].filter(Boolean).join(' ');
-  };
+  }, [fetchApiHealth, fetchApiMethods, fetchStatus, fetchMCPStatus]);
 
   if (isLoading && !apiStatus) {
     return (
@@ -71,16 +55,7 @@ const Dashboard: React.FC = () => {
       
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
-          <StatusCard 
-            title="API Status"
-            status={apiStatus || 'Unknown'}
-            isOperational={apiStatus === 'operational'}
-            details={[
-              { label: 'Version', value: apiVersion || 'Unknown' },
-              { label: 'Uptime', value: formatUptime(apiUptime || 0) },
-              { label: 'Last Checked', value: new Date().toLocaleTimeString() }
-            ]}
-          />
+          <APIStatusCard />
         </Grid>
         
         {/* A2A Server Status */}

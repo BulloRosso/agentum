@@ -56,6 +56,39 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
+// API Documentation endpoints
+app.get('/api/api/doc', (req, res) => {
+  logger.info(`Proxying API documentation request`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/api/doc',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
+// API Methods endpoint
+app.get('/api/api/methods', (req, res) => {
+  logger.info(`Proxying API methods request`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/api/methods',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
+// OpenAPI schema endpoint
+app.get('/api/openapi.json', (req, res) => {
+  logger.info(`Proxying OpenAPI schema request`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/openapi.json',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
 // A2A Server endpoints (.well-known and /tasks)
 app.get('/.well-known/*', (req, res) => {
   logger.info(`Proxying A2A well-known request to A2A server: ${req.path}`);
