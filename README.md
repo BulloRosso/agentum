@@ -50,6 +50,7 @@ The A2A server is integrated with the main application via the proxy server. Req
 
 - `/.well-known/agent.json`: Agent information and capabilities
 - `/tasks`: Task management endpoint for JSON-RPC requests
+- `/agent-card/*`: All requests to this path (any HTTP method) are routed to the A2A server
 
 See the [A2A server documentation](./a2a-server/README.md) for more details on implementation and usage.
 

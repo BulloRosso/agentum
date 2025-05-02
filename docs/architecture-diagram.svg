@@ -58,6 +58,7 @@
   <text x="650" y="235" font-family="Arial" font-size="12">/api/v1/* → API Backend</text>
   <text x="650" y="255" font-family="Arial" font-size="12">/.well-known/* → A2A Server</text>
   <text x="650" y="275" font-family="Arial" font-size="12">/tasks → A2A Server</text>
+  <text x="650" y="295" font-family="Arial" font-size="12">/agent-card/* → A2A Server</text>
   
   <!-- Port legend -->
   <text x="100" y="470" font-family="Arial" font-size="14" font-weight="bold">Listening Ports:</text>
