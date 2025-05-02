@@ -38,3 +38,40 @@ export const fetchA2AStatus = async (): Promise<{
     };
   }
 };
+
+/**
+ * Tests an agent by sending a message and returning the response
+ */
+export const testAgent = async (message: string): Promise<Task> => {
+  try {
+    // Create a unique task ID
+    const taskId = `task-${Date.now()}`;
+    
+    // Create the message object
+    const messageObj = {
+      role: 'user',
+      parts: [{ text: message }]
+    };
+    
+    // Send the task to the A2A server
+    const response = await axios.post('/tasks', {
+      jsonrpc: '2.0',
+      id: Date.now(),
+      method: 'tasks/send',
+      params: {
+        id: taskId,
+        message: messageObj
+      }
+    });
+    
+    // Check for JSON-RPC error
+    if (response.data.error) {
+      throw new Error(`RPC Error: ${response.data.error.message}`);
+    }
+    
+    return response.data.result;
+  } catch (error) {
+    console.error('Error testing agent:', error);
+    throw error;
+  }
+};
