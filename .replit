@@ -1,0 +1,106 @@
+modules = ["nodejs-20", "python-3.11"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "API Backend"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Frontend Development Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Proxy Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "A2A Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "MCP Server"
+
+[[workflows.workflow]]
+name = "API Backend"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd api && pip install -r requirements.txt && python main.py"
+waitForPort = 3000
+
+[[workflows.workflow]]
+name = "Frontend Development Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd frontend && npm install && npm run dev"
+waitForPort = 5173
+
+[[workflows.workflow]]
+name = "Proxy Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node proxy-server.js"
+waitForPort = 80
+
+[[workflows.workflow]]
+name = "A2A Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd a2a-server && node simple-server.js"
+waitForPort = 3200
+
+[[workflows.workflow]]
+name = "MCP Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd mcp-server && pip install -r requirements.txt && python mcp_server.py"
+waitForPort = 3400
+
+[deployment]
+run = ["sh", "-c", "cd api && pip install -r requirements.txt && python main.py"]
+
+[[ports]]
+localPort = 80
+externalPort = 80
+
+[[ports]]
+localPort = 3000
+externalPort = 3000
+
+[[ports]]
+localPort = 3200
+externalPort = 3001
+
+[[ports]]
+localPort = 3400
+externalPort = 3002
+
+[[ports]]
+localPort = 5000
+
+[[ports]]
+localPort = 5001
+
+[[ports]]
+localPort = 5173
+externalPort = 5173

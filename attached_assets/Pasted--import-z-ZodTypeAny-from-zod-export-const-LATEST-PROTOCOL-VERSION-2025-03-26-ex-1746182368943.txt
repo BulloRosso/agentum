@@ -1,0 +1,3742 @@
+
+
+import { z, ZodTypeAny } from "zod";
+
+export const LATEST_PROTOCOL_VERSION = "2025-03-26";
+export const SUPPORTED_PROTOCOL_VERSIONS = [
+  LATEST_PROTOCOL_VERSION,
+  "2024-11-05",
+  "2024-10-07",
+];
+
+/* JSON-RPC types */
+export const JSONRPC_VERSION = "2.0";
+
+/**
+ * A progress token, used to associate progress notifications with the original request.
+ */
+export const ProgressTokenSchema = z.union([z.string(), z.number().int()]);
+
+/**
+ * An opaque token used to represent a cursor for pagination.
+ */
+export const CursorSchema = z.string();
+
+const RequestMetaSchema = z
+  .object({
+    /**
+     * If specified, the caller is requesting out-of-band progress notifications for this request (as represented by notifications/progress). The value of this parameter is an opaque token that will be attached to any subsequent notifications. The receiver is not obligated to provide these notifications.
+     */
+    progressToken: z.optional(ProgressTokenSchema),
+  })
+  .passthrough();
+
+const BaseRequestParamsSchema = z
+  .object({
+    _meta: z.optional(RequestMetaSchema),
+  })
+  .passthrough();
+
+export const RequestSchema = z.object({
+  method: z.string(),
+  params: z.optional(BaseRequestParamsSchema),
+});
+
+const BaseNotificationParamsSchema = z
+  .object({
+    /**
+     * This parameter name is reserved by MCP to allow clients and servers to attach additional metadata to their notifications.
+     */
+    _meta: z.optional(z.object({}).passthrough()),
+  })
+  .passthrough();
+
+export const NotificationSchema = z.object({
+  method: z.string(),
+  params: z.optional(BaseNotificationParamsSchema),
+});
+
+export const ResultSchema = z
+  .object({
+    /**
+     * This result property is reserved by the protocol to allow clients and servers to attach additional metadata to their responses.
+     */
+    _meta: z.optional(z.object({}).passthrough()),
+  })
+  .passthrough();
+
+/**
+ * A uniquely identifying ID for a request in JSON-RPC.
+ */
+export const RequestIdSchema = z.union([z.string(), z.number().int()]);
+
+/**
+ * A request that expects a response.
+ */
+export const JSONRPCRequestSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+    id: RequestIdSchema,
+  })
+  .merge(RequestSchema)
+  .strict();
+
+export const isJSONRPCRequest = (value: unknown): value is JSONRPCRequest =>
+  JSONRPCRequestSchema.safeParse(value).success;
+
+/**
+ * A notification which does not expect a response.
+ */
+export const JSONRPCNotificationSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+  })
+  .merge(NotificationSchema)
+  .strict();
+
+export const isJSONRPCNotification = (
+  value: unknown
+): value is JSONRPCNotification =>
+  JSONRPCNotificationSchema.safeParse(value).success;
+
+/**
+ * A successful (non-error) response to a request.
+ */
+export const JSONRPCResponseSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+    id: RequestIdSchema,
+    result: ResultSchema,
+  })
+  .strict();
+
+export const isJSONRPCResponse = (value: unknown): value is JSONRPCResponse =>
+  JSONRPCResponseSchema.safeParse(value).success;
+
+/**
+ * Error codes defined by the JSON-RPC specification.
+ */
+export enum ErrorCode {
+  // SDK error codes
+  ConnectionClosed = -32000,
+  RequestTimeout = -32001,
+
+  // Standard JSON-RPC error codes
+  ParseError = -32700,
+  InvalidRequest = -32600,
+  MethodNotFound = -32601,
+  InvalidParams = -32602,
+  InternalError = -32603,
+}
+
+/**
+ * A response to a request that indicates an error occurred.
+ */
+export const JSONRPCErrorSchema = z
+  .object({
+    jsonrpc: z.literal(JSONRPC_VERSION),
+    id: RequestIdSchema,
+    error: z.object({
+      /**
+       * The error type that occurred.
+       */
+      code: z.number().int(),
+      /**
+       * A short description of the error. The message SHOULD be limited to a concise single sentence.
+       */
+      message: z.string(),
+      /**
+       * Additional information about the error. The value of this member is defined by the sender (e.g. detailed error information, nested errors etc.).
+       */
+      data: z.optional(z.unknown()),
+    }),
+  })
+  .strict();
+
+export const isJSONRPCError = (value: unknown): value is JSONRPCError =>
+  JSONRPCErrorSchema.safeParse(value).success;
+
+export const JSONRPCMessageSchema = z.union([
+  JSONRPCRequestSchema,
+  JSONRPCNotificationSchema,
+  JSONRPCResponseSchema,
+  JSONRPCErrorSchema,
+]);
+
+/* Empty result */
+/**
+ * A response that indicates success but carries no data.
+ */
+export const EmptyResultSchema = ResultSchema.strict();
+
+/* Cancellation */
+/**
+ * This notification can be sent by either side to indicate that it is cancelling a previously-issued request.
+ *
+ * The request SHOULD still be in-flight, but due to communication latency, it is always possible that this notification MAY arrive after the request has already finished.
+ *
+ * This notification indicates that the result will be unused, so any associated processing SHOULD cease.
+ *
+ * A client MUST NOT attempt to cancel its `initialize` request.
+ */
+export const CancelledNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/cancelled"),
+  params: BaseNotificationParamsSchema.extend({
+    /**
+     * The ID of the request to cancel.
+     *
+     * This MUST correspond to the ID of a request previously issued in the same direction.
+     */
+    requestId: RequestIdSchema,
+
+    /**
+     * An optional string describing the reason for the cancellation. This MAY be logged or presented to the user.
+     */
+    reason: z.string().optional(),
+  }),
+});
+
+/* Initialization */
+/**
+ * Describes the name and version of an MCP implementation.
+ */
+export const ImplementationSchema = z
+  .object({
+    name: z.string(),
+    version: z.string(),
+  })
+  .passthrough();
+
+/**
+ * Capabilities a client may support. Known capabilities are defined here, in this schema, but this is not a closed set: any client can define its own, additional capabilities.
+ */
+export const ClientCapabilitiesSchema = z
+  .object({
+    /**
+     * Experimental, non-standard capabilities that the client supports.
+     */
+    experimental: z.optional(z.object({}).passthrough()),
+    /**
+     * Present if the client supports sampling from an LLM.
+     */
+    sampling: z.optional(z.object({}).passthrough()),
+    /**
+     * Present if the client supports listing roots.
+     */
+    roots: z.optional(
+      z
+        .object({
+          /**
+           * Whether the client supports issuing notifications for changes to the roots list.
+           */
+          listChanged: z.optional(z.boolean()),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
+/**
+ * This request is sent from the client to the server when it first connects, asking it to begin initialization.
+ */
+export const InitializeRequestSchema = RequestSchema.extend({
+  method: z.literal("initialize"),
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * The latest version of the Model Context Protocol that the client supports. The client MAY decide to support older versions as well.
+     */
+    protocolVersion: z.string(),
+    capabilities: ClientCapabilitiesSchema,
+    clientInfo: ImplementationSchema,
+  }),
+});
+
+export const isInitializeRequest = (value: unknown): value is InitializeRequest =>
+  InitializeRequestSchema.safeParse(value).success;
+
+
+/**
+ * Capabilities that a server may support. Known capabilities are defined here, in this schema, but this is not a closed set: any server can define its own, additional capabilities.
+ */
+export const ServerCapabilitiesSchema = z
+  .object({
+    /**
+     * Experimental, non-standard capabilities that the server supports.
+     */
+    experimental: z.optional(z.object({}).passthrough()),
+    /**
+     * Present if the server supports sending log messages to the client.
+     */
+    logging: z.optional(z.object({}).passthrough()),
+    /**
+     * Present if the server supports sending completions to the client.
+     */
+    completions: z.optional(z.object({}).passthrough()),
+    /**
+     * Present if the server offers any prompt templates.
+     */
+    prompts: z.optional(
+      z
+        .object({
+          /**
+           * Whether this server supports issuing notifications for changes to the prompt list.
+           */
+          listChanged: z.optional(z.boolean()),
+        })
+        .passthrough(),
+    ),
+    /**
+     * Present if the server offers any resources to read.
+     */
+    resources: z.optional(
+      z
+        .object({
+          /**
+           * Whether this server supports clients subscribing to resource updates.
+           */
+          subscribe: z.optional(z.boolean()),
+
+          /**
+           * Whether this server supports issuing notifications for changes to the resource list.
+           */
+          listChanged: z.optional(z.boolean()),
+        })
+        .passthrough(),
+    ),
+    /**
+     * Present if the server offers any tools to call.
+     */
+    tools: z.optional(
+      z
+        .object({
+          /**
+           * Whether this server supports issuing notifications for changes to the tool list.
+           */
+          listChanged: z.optional(z.boolean()),
+        })
+        .passthrough(),
+    ),
+  })
+  .passthrough();
+
+/**
+ * After receiving an initialize request from the client, the server sends this response.
+ */
+export const InitializeResultSchema = ResultSchema.extend({
+  /**
+   * The version of the Model Context Protocol that the server wants to use. This may not match the version that the client requested. If the client cannot support this version, it MUST disconnect.
+   */
+  protocolVersion: z.string(),
+  capabilities: ServerCapabilitiesSchema,
+  serverInfo: ImplementationSchema,
+  /**
+   * Instructions describing how to use the server and its features.
+   *
+   * This can be used by clients to improve the LLM's understanding of available tools, resources, etc. It can be thought of like a "hint" to the model. For example, this information MAY be added to the system prompt.
+   */
+  instructions: z.optional(z.string()),
+});
+
+/**
+ * This notification is sent from the client to the server after initialization has finished.
+ */
+export const InitializedNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/initialized"),
+});
+
+export const isInitializedNotification = (value: unknown): value is InitializedNotification =>
+  InitializedNotificationSchema.safeParse(value).success;
+
+/* Ping */
+/**
+ * A ping, issued by either the server or the client, to check that the other party is still alive. The receiver must promptly respond, or else may be disconnected.
+ */
+export const PingRequestSchema = RequestSchema.extend({
+  method: z.literal("ping"),
+});
+
+/* Progress notifications */
+export const ProgressSchema = z
+  .object({
+    /**
+     * The progress thus far. This should increase every time progress is made, even if the total is unknown.
+     */
+    progress: z.number(),
+    /**
+     * Total number of items to process (or total progress required), if known.
+     */
+    total: z.optional(z.number()),
+  })
+  .passthrough();
+
+/**
+ * An out-of-band notification used to inform the receiver of a progress update for a long-running request.
+ */
+export const ProgressNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/progress"),
+  params: BaseNotificationParamsSchema.merge(ProgressSchema).extend({
+    /**
+     * The progress token which was given in the initial request, used to associate this notification with the request that is proceeding.
+     */
+    progressToken: ProgressTokenSchema,
+  }),
+});
+
+/* Pagination */
+export const PaginatedRequestSchema = RequestSchema.extend({
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * An opaque token representing the current pagination position.
+     * If provided, the server should return results starting after this cursor.
+     */
+    cursor: z.optional(CursorSchema),
+  }).optional(),
+});
+
+export const PaginatedResultSchema = ResultSchema.extend({
+  /**
+   * An opaque token representing the pagination position after the last returned result.
+   * If present, there may be more results available.
+   */
+  nextCursor: z.optional(CursorSchema),
+});
+
+/* Resources */
+/**
+ * The contents of a specific resource or sub-resource.
+ */
+export const ResourceContentsSchema = z
+  .object({
+    /**
+     * The URI of this resource.
+     */
+    uri: z.string(),
+    /**
+     * The MIME type of this resource, if known.
+     */
+    mimeType: z.optional(z.string()),
+  })
+  .passthrough();
+
+export const TextResourceContentsSchema = ResourceContentsSchema.extend({
+  /**
+   * The text of the item. This must only be set if the item can actually be represented as text (not binary data).
+   */
+  text: z.string(),
+});
+
+export const BlobResourceContentsSchema = ResourceContentsSchema.extend({
+  /**
+   * A base64-encoded string representing the binary data of the item.
+   */
+  blob: z.string().base64(),
+});
+
+/**
+ * A known resource that the server is capable of reading.
+ */
+export const ResourceSchema = z
+  .object({
+    /**
+     * The URI of this resource.
+     */
+    uri: z.string(),
+
+    /**
+     * A human-readable name for this resource.
+     *
+     * This can be used by clients to populate UI elements.
+     */
+    name: z.string(),
+
+    /**
+     * A description of what this resource represents.
+     *
+     * This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a "hint" to the model.
+     */
+    description: z.optional(z.string()),
+
+    /**
+     * The MIME type of this resource, if known.
+     */
+    mimeType: z.optional(z.string()),
+  })
+  .passthrough();
+
+/**
+ * A template description for resources available on the server.
+ */
+export const ResourceTemplateSchema = z
+  .object({
+    /**
+     * A URI template (according to RFC 6570) that can be used to construct resource URIs.
+     */
+    uriTemplate: z.string(),
+
+    /**
+     * A human-readable name for the type of resource this template refers to.
+     *
+     * This can be used by clients to populate UI elements.
+     */
+    name: z.string(),
+
+    /**
+     * A description of what this template is for.
+     *
+     * This can be used by clients to improve the LLM's understanding of available resources. It can be thought of like a "hint" to the model.
+     */
+    description: z.optional(z.string()),
+
+    /**
+     * The MIME type for all resources that match this template. This should only be included if all resources matching this template have the same type.
+     */
+    mimeType: z.optional(z.string()),
+  })
+  .passthrough();
+
+/**
+ * Sent from the client to request a list of resources the server has.
+ */
+export const ListResourcesRequestSchema = PaginatedRequestSchema.extend({
+  method: z.literal("resources/list"),
+});
+
+/**
+ * The server's response to a resources/list request from the client.
+ */
+export const ListResourcesResultSchema = PaginatedResultSchema.extend({
+  resources: z.array(ResourceSchema),
+});
+
+/**
+ * Sent from the client to request a list of resource templates the server has.
+ */
+export const ListResourceTemplatesRequestSchema = PaginatedRequestSchema.extend(
+  {
+    method: z.literal("resources/templates/list"),
+  },
+);
+
+/**
+ * The server's response to a resources/templates/list request from the client.
+ */
+export const ListResourceTemplatesResultSchema = PaginatedResultSchema.extend({
+  resourceTemplates: z.array(ResourceTemplateSchema),
+});
+
+/**
+ * Sent from the client to the server, to read a specific resource URI.
+ */
+export const ReadResourceRequestSchema = RequestSchema.extend({
+  method: z.literal("resources/read"),
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * The URI of the resource to read. The URI can use any protocol; it is up to the server how to interpret it.
+     */
+    uri: z.string(),
+  }),
+});
+
+/**
+ * The server's response to a resources/read request from the client.
+ */
+export const ReadResourceResultSchema = ResultSchema.extend({
+  contents: z.array(
+    z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
+  ),
+});
+
+/**
+ * An optional notification from the server to the client, informing it that the list of resources it can read from has changed. This may be issued by servers without any previous subscription from the client.
+ */
+export const ResourceListChangedNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/resources/list_changed"),
+});
+
+/**
+ * Sent from the client to request resources/updated notifications from the server whenever a particular resource changes.
+ */
+export const SubscribeRequestSchema = RequestSchema.extend({
+  method: z.literal("resources/subscribe"),
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * The URI of the resource to subscribe to. The URI can use any protocol; it is up to the server how to interpret it.
+     */
+    uri: z.string(),
+  }),
+});
+
+/**
+ * Sent from the client to request cancellation of resources/updated notifications from the server. This should follow a previous resources/subscribe request.
+ */
+export const UnsubscribeRequestSchema = RequestSchema.extend({
+  method: z.literal("resources/unsubscribe"),
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * The URI of the resource to unsubscribe from.
+     */
+    uri: z.string(),
+  }),
+});
+
+/**
+ * A notification from the server to the client, informing it that a resource has changed and may need to be read again. This should only be sent if the client previously sent a resources/subscribe request.
+ */
+export const ResourceUpdatedNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/resources/updated"),
+  params: BaseNotificationParamsSchema.extend({
+    /**
+     * The URI of the resource that has been updated. This might be a sub-resource of the one that the client actually subscribed to.
+     */
+    uri: z.string(),
+  }),
+});
+
+/* Prompts */
+/**
+ * Describes an argument that a prompt can accept.
+ */
+export const PromptArgumentSchema = z
+  .object({
+    /**
+     * The name of the argument.
+     */
+    name: z.string(),
+    /**
+     * A human-readable description of the argument.
+     */
+    description: z.optional(z.string()),
+    /**
+     * Whether this argument must be provided.
+     */
+    required: z.optional(z.boolean()),
+  })
+  .passthrough();
+
+/**
+ * A prompt or prompt template that the server offers.
+ */
+export const PromptSchema = z
+  .object({
+    /**
+     * The name of the prompt or prompt template.
+     */
+    name: z.string(),
+    /**
+     * An optional description of what this prompt provides
+     */
+    description: z.optional(z.string()),
+    /**
+     * A list of arguments to use for templating the prompt.
+     */
+    arguments: z.optional(z.array(PromptArgumentSchema)),
+  })
+  .passthrough();
+
+/**
+ * Sent from the client to request a list of prompts and prompt templates the server has.
+ */
+export const ListPromptsRequestSchema = PaginatedRequestSchema.extend({
+  method: z.literal("prompts/list"),
+});
+
+/**
+ * The server's response to a prompts/list request from the client.
+ */
+export const ListPromptsResultSchema = PaginatedResultSchema.extend({
+  prompts: z.array(PromptSchema),
+});
+
+/**
+ * Used by the client to get a prompt provided by the server.
+ */
+export const GetPromptRequestSchema = RequestSchema.extend({
+  method: z.literal("prompts/get"),
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * The name of the prompt or prompt template.
+     */
+    name: z.string(),
+    /**
+     * Arguments to use for templating the prompt.
+     */
+    arguments: z.optional(z.record(z.string())),
+  }),
+});
+
+/**
+ * Text provided to or from an LLM.
+ */
+export const TextContentSchema = z
+  .object({
+    type: z.literal("text"),
+    /**
+     * The text content of the message.
+     */
+    text: z.string(),
+  })
+  .passthrough();
+
+/**
+ * An image provided to or from an LLM.
+ */
+export const ImageContentSchema = z
+  .object({
+    type: z.literal("image"),
+    /**
+     * The base64-encoded image data.
+     */
+    data: z.string().base64(),
+    /**
+     * The MIME type of the image. Different providers may support different image types.
+     */
+    mimeType: z.string(),
+  })
+  .passthrough();
+
+/**
+ * An Audio provided to or from an LLM.
+ */
+export const AudioContentSchema = z
+  .object({
+    type: z.literal("audio"),
+    /**
+     * The base64-encoded audio data.
+     */
+    data: z.string().base64(),
+    /**
+     * The MIME type of the audio. Different providers may support different audio types.
+     */
+    mimeType: z.string(),
+  })
+  .passthrough();
+
+/**
+ * The contents of a resource, embedded into a prompt or tool call result.
+ */
+export const EmbeddedResourceSchema = z
+  .object({
+    type: z.literal("resource"),
+    resource: z.union([TextResourceContentsSchema, BlobResourceContentsSchema]),
+  })
+  .passthrough();
+
+/**
+ * Describes a message returned as part of a prompt.
+ */
+export const PromptMessageSchema = z
+  .object({
+    role: z.enum(["user", "assistant"]),
+    content: z.union([
+      TextContentSchema,
+      ImageContentSchema,
+      AudioContentSchema,
+      EmbeddedResourceSchema,
+    ]),
+  })
+  .passthrough();
+
+/**
+ * The server's response to a prompts/get request from the client.
+ */
+export const GetPromptResultSchema = ResultSchema.extend({
+  /**
+   * An optional description for the prompt.
+   */
+  description: z.optional(z.string()),
+  messages: z.array(PromptMessageSchema),
+});
+
+/**
+ * An optional notification from the server to the client, informing it that the list of prompts it offers has changed. This may be issued by servers without any previous subscription from the client.
+ */
+export const PromptListChangedNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/prompts/list_changed"),
+});
+
+/* Tools */
+/**
+ * Additional properties describing a Tool to clients.
+ *
+ * NOTE: all properties in ToolAnnotations are **hints**.
+ * They are not guaranteed to provide a faithful description of
+ * tool behavior (including descriptive properties like `title`).
+ *
+ * Clients should never make tool use decisions based on ToolAnnotations
+ * received from untrusted servers.
+ */
+export const ToolAnnotationsSchema = z
+  .object({
+    /**
+     * A human-readable title for the tool.
+     */
+    title: z.optional(z.string()),
+
+    /**
+     * If true, the tool does not modify its environment.
+     *
+     * Default: false
+     */
+    readOnlyHint: z.optional(z.boolean()),
+
+    /**
+     * If true, the tool may perform destructive updates to its environment.
+     * If false, the tool performs only additive updates.
+     *
+     * (This property is meaningful only when `readOnlyHint == false`)
+     *
+     * Default: true
+     */
+    destructiveHint: z.optional(z.boolean()),
+
+    /**
+     * If true, calling the tool repeatedly with the same arguments
+     * will have no additional effect on the its environment.
+     *
+     * (This property is meaningful only when `readOnlyHint == false`)
+     *
+     * Default: false
+     */
+    idempotentHint: z.optional(z.boolean()),
+
+    /**
+     * If true, this tool may interact with an "open world" of external
+     * entities. If false, the tool's domain of interaction is closed.
+     * For example, the world of a web search tool is open, whereas that
+     * of a memory tool is not.
+     *
+     * Default: true
+     */
+    openWorldHint: z.optional(z.boolean()),
+  })
+  .passthrough();
+
+/**
+ * Definition for a tool the client can call.
+ */
+export const ToolSchema = z
+  .object({
+    /**
+     * The name of the tool.
+     */
+    name: z.string(),
+    /**
+     * A human-readable description of the tool.
+     */
+    description: z.optional(z.string()),
+    /**
+     * A JSON Schema object defining the expected parameters for the tool.
+     */
+    inputSchema: z
+      .object({
+        type: z.literal("object"),
+        properties: z.optional(z.object({}).passthrough()),
+      })
+      .passthrough(),
+    /**
+     * Optional additional tool information.
+     */
+    annotations: z.optional(ToolAnnotationsSchema),
+  })
+  .passthrough();
+
+/**
+ * Sent from the client to request a list of tools the server has.
+ */
+export const ListToolsRequestSchema = PaginatedRequestSchema.extend({
+  method: z.literal("tools/list"),
+});
+
+/**
+ * The server's response to a tools/list request from the client.
+ */
+export const ListToolsResultSchema = PaginatedResultSchema.extend({
+  tools: z.array(ToolSchema),
+});
+
+/**
+ * The server's response to a tool call.
+ */
+export const CallToolResultSchema = ResultSchema.extend({
+  content: z.array(
+    z.union([TextContentSchema, ImageContentSchema, AudioContentSchema, EmbeddedResourceSchema]),
+  ),
+  isError: z.boolean().default(false).optional(),
+});
+
+/**
+ * CallToolResultSchema extended with backwards compatibility to protocol version 2024-10-07.
+ */
+export const CompatibilityCallToolResultSchema = CallToolResultSchema.or(
+  ResultSchema.extend({
+    toolResult: z.unknown(),
+  }),
+);
+
+/**
+ * Used by the client to invoke a tool provided by the server.
+ */
+export const CallToolRequestSchema = RequestSchema.extend({
+  method: z.literal("tools/call"),
+  params: BaseRequestParamsSchema.extend({
+    name: z.string(),
+    arguments: z.optional(z.record(z.unknown())),
+  }),
+});
+
+/**
+ * An optional notification from the server to the client, informing it that the list of tools it offers has changed. This may be issued by servers without any previous subscription from the client.
+ */
+export const ToolListChangedNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/tools/list_changed"),
+});
+
+/* Logging */
+/**
+ * The severity of a log message.
+ */
+export const LoggingLevelSchema = z.enum([
+  "debug",
+  "info",
+  "notice",
+  "warning",
+  "error",
+  "critical",
+  "alert",
+  "emergency",
+]);
+
+/**
+ * A request from the client to the server, to enable or adjust logging.
+ */
+export const SetLevelRequestSchema = RequestSchema.extend({
+  method: z.literal("logging/setLevel"),
+  params: BaseRequestParamsSchema.extend({
+    /**
+     * The level of logging that the client wants to receive from the server. The server should send all logs at this level and higher (i.e., more severe) to the client as notifications/logging/message.
+     */
+    level: LoggingLevelSchema,
+  }),
+});
+
+/**
+ * Notification of a log message passed from server to client. If no logging/setLevel request has been sent from the client, the server MAY decide which messages to send automatically.
+ */
+export const LoggingMessageNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/message"),
+  params: BaseNotificationParamsSchema.extend({
+    /**
+     * The severity of this log message.
+     */
+    level: LoggingLevelSchema,
+    /**
+     * An optional name of the logger issuing this message.
+     */
+    logger: z.optional(z.string()),
+    /**
+     * The data to be logged, such as a string message or an object. Any JSON serializable type is allowed here.
+     */
+    data: z.unknown(),
+  }),
+});
+
+/* Sampling */
+/**
+ * Hints to use for model selection.
+ */
+export const ModelHintSchema = z
+  .object({
+    /**
+     * A hint for a model name.
+     */
+    name: z.string().optional(),
+  })
+  .passthrough();
+
+/**
+ * The server's preferences for model selection, requested of the client during sampling.
+ */
+export const ModelPreferencesSchema = z
+  .object({
+    /**
+     * Optional hints to use for model selection.
+     */
+    hints: z.optional(z.array(ModelHintSchema)),
+    /**
+     * How much to prioritize cost when selecting a model.
+     */
+    costPriority: z.optional(z.number().min(0).max(1)),
+    /**
+     * How much to prioritize sampling speed (latency) when selecting a model.
+     */
+    speedPriority: z.optional(z.number().min(0).max(1)),
+    /**
+     * How much to prioritize intelligence and capabilities when selecting a model.
+     */
+    intelligencePriority: z.optional(z.number().min(0).max(1)),
+  })
+  .passthrough();
+
+/**
+ * Describes a message issued to or received from an LLM API.
+ */
+export const SamplingMessageSchema = z
+  .object({
+    role: z.enum(["user", "assistant"]),
+    content: z.union([TextContentSchema, ImageContentSchema, AudioContentSchema]),
+  })
+  .passthrough();
+
+/**
+ * A request from the server to sample an LLM via the client. The client has full discretion over which model to select. The client should also inform the user before beginning sampling, to allow them to inspect the request (human in the loop) and decide whether to approve it.
+ */
+export const CreateMessageRequestSchema = RequestSchema.extend({
+  method: z.literal("sampling/createMessage"),
+  params: BaseRequestParamsSchema.extend({
+    messages: z.array(SamplingMessageSchema),
+    /**
+     * An optional system prompt the server wants to use for sampling. The client MAY modify or omit this prompt.
+     */
+    systemPrompt: z.optional(z.string()),
+    /**
+     * A request to include context from one or more MCP servers (including the caller), to be attached to the prompt. The client MAY ignore this request.
+     */
+    includeContext: z.optional(z.enum(["none", "thisServer", "allServers"])),
+    temperature: z.optional(z.number()),
+    /**
+     * The maximum number of tokens to sample, as requested by the server. The client MAY choose to sample fewer tokens than requested.
+     */
+    maxTokens: z.number().int(),
+    stopSequences: z.optional(z.array(z.string())),
+    /**
+     * Optional metadata to pass through to the LLM provider. The format of this metadata is provider-specific.
+     */
+    metadata: z.optional(z.object({}).passthrough()),
+    /**
+     * The server's preferences for which model to select.
+     */
+    modelPreferences: z.optional(ModelPreferencesSchema),
+  }),
+});
+
+/**
+ * The client's response to a sampling/create_message request from the server. The client should inform the user before returning the sampled message, to allow them to inspect the response (human in the loop) and decide whether to allow the server to see it.
+ */
+export const CreateMessageResultSchema = ResultSchema.extend({
+  /**
+   * The name of the model that generated the message.
+   */
+  model: z.string(),
+  /**
+   * The reason why sampling stopped.
+   */
+  stopReason: z.optional(
+    z.enum(["endTurn", "stopSequence", "maxTokens"]).or(z.string()),
+  ),
+  role: z.enum(["user", "assistant"]),
+  content: z.discriminatedUnion("type", [
+    TextContentSchema,
+    ImageContentSchema,
+    AudioContentSchema
+  ]),
+});
+
+/* Autocomplete */
+/**
+ * A reference to a resource or resource template definition.
+ */
+export const ResourceReferenceSchema = z
+  .object({
+    type: z.literal("ref/resource"),
+    /**
+     * The URI or URI template of the resource.
+     */
+    uri: z.string(),
+  })
+  .passthrough();
+
+/**
+ * Identifies a prompt.
+ */
+export const PromptReferenceSchema = z
+  .object({
+    type: z.literal("ref/prompt"),
+    /**
+     * The name of the prompt or prompt template
+     */
+    name: z.string(),
+  })
+  .passthrough();
+
+/**
+ * A request from the client to the server, to ask for completion options.
+ */
+export const CompleteRequestSchema = RequestSchema.extend({
+  method: z.literal("completion/complete"),
+  params: BaseRequestParamsSchema.extend({
+    ref: z.union([PromptReferenceSchema, ResourceReferenceSchema]),
+    /**
+     * The argument's information
+     */
+    argument: z
+      .object({
+        /**
+         * The name of the argument
+         */
+        name: z.string(),
+        /**
+         * The value of the argument to use for completion matching.
+         */
+        value: z.string(),
+      })
+      .passthrough(),
+  }),
+});
+
+/**
+ * The server's response to a completion/complete request
+ */
+export const CompleteResultSchema = ResultSchema.extend({
+  completion: z
+    .object({
+      /**
+       * An array of completion values. Must not exceed 100 items.
+       */
+      values: z.array(z.string()).max(100),
+      /**
+       * The total number of completion options available. This can exceed the number of values actually sent in the response.
+       */
+      total: z.optional(z.number().int()),
+      /**
+       * Indicates whether there are additional completion options beyond those provided in the current response, even if the exact total is unknown.
+       */
+      hasMore: z.optional(z.boolean()),
+    })
+    .passthrough(),
+});
+
+/* Roots */
+/**
+ * Represents a root directory or file that the server can operate on.
+ */
+export const RootSchema = z
+  .object({
+    /**
+     * The URI identifying the root. This *must* start with file:// for now.
+     */
+    uri: z.string().startsWith("file://"),
+    /**
+     * An optional name for the root.
+     */
+    name: z.optional(z.string()),
+  })
+  .passthrough();
+
+/**
+ * Sent from the server to request a list of root URIs from the client.
+ */
+export const ListRootsRequestSchema = RequestSchema.extend({
+  method: z.literal("roots/list"),
+});
+
+/**
+ * The client's response to a roots/list request from the server.
+ */
+export const ListRootsResultSchema = ResultSchema.extend({
+  roots: z.array(RootSchema),
+});
+
+/**
+ * A notification from the client to the server, informing it that the list of roots has changed.
+ */
+export const RootsListChangedNotificationSchema = NotificationSchema.extend({
+  method: z.literal("notifications/roots/list_changed"),
+});
+
+/* Client messages */
+export const ClientRequestSchema = z.union([
+  PingRequestSchema,
+  InitializeRequestSchema,
+  CompleteRequestSchema,
+  SetLevelRequestSchema,
+  GetPromptRequestSchema,
+  ListPromptsRequestSchema,
+  ListResourcesRequestSchema,
+  ListResourceTemplatesRequestSchema,
+  ReadResourceRequestSchema,
+  SubscribeRequestSchema,
+  UnsubscribeRequestSchema,
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+]);
+
+export const ClientNotificationSchema = z.union([
+  CancelledNotificationSchema,
+  ProgressNotificationSchema,
+  InitializedNotificationSchema,
+  RootsListChangedNotificationSchema,
+]);
+
+export const ClientResultSchema = z.union([
+  EmptyResultSchema,
+  CreateMessageResultSchema,
+  ListRootsResultSchema,
+]);
+
+/* Server messages */
+export const ServerRequestSchema = z.union([
+  PingRequestSchema,
+  CreateMessageRequestSchema,
+  ListRootsRequestSchema,
+]);
+
+export const ServerNotificationSchema = z.union([
+  CancelledNotificationSchema,
+  ProgressNotificationSchema,
+  LoggingMessageNotificationSchema,
+  ResourceUpdatedNotificationSchema,
+  ResourceListChangedNotificationSchema,
+  ToolListChangedNotificationSchema,
+  PromptListChangedNotificationSchema,
+]);
+
+export const ServerResultSchema = z.union([
+  EmptyResultSchema,
+  InitializeResultSchema,
+  CompleteResultSchema,
+  GetPromptResultSchema,
+  ListPromptsResultSchema,
+  ListResourcesResultSchema,
+  ListResourceTemplatesResultSchema,
+  ReadResourceResultSchema,
+  CallToolResultSchema,
+  ListToolsResultSchema,
+]);
+
+export class McpError extends Error {
+  constructor(
+    public readonly code: number,
+    message: string,
+    public readonly data?: unknown,
+  ) {
+    super(`MCP error ${code}: ${message}`);
+    this.name = "McpError";
+  }
+}
+
+type Primitive = string | number | boolean | bigint | null | undefined;
+type Flatten<T> = T extends Primitive
+  ? T
+  : T extends Array<infer U>
+  ? Array<Flatten<U>>
+  : T extends Set<infer U>
+  ? Set<Flatten<U>>
+  : T extends Map<infer K, infer V>
+  ? Map<Flatten<K>, Flatten<V>>
+  : T extends object
+  ? { [K in keyof T]: Flatten<T[K]> }
+  : T;
+
+type Infer<Schema extends ZodTypeAny> = Flatten<z.infer<Schema>>;
+
+/* JSON-RPC types */
+export type ProgressToken = Infer<typeof ProgressTokenSchema>;
+export type Cursor = Infer<typeof CursorSchema>;
+export type Request = Infer<typeof RequestSchema>;
+export type RequestMeta = Infer<typeof RequestMetaSchema>;
+export type Notification = Infer<typeof NotificationSchema>;
+export type Result = Infer<typeof ResultSchema>;
+export type RequestId = Infer<typeof RequestIdSchema>;
+export type JSONRPCRequest = Infer<typeof JSONRPCRequestSchema>;
+export type JSONRPCNotification = Infer<typeof JSONRPCNotificationSchema>;
+export type JSONRPCResponse = Infer<typeof JSONRPCResponseSchema>;
+export type JSONRPCError = Infer<typeof JSONRPCErrorSchema>;
+export type JSONRPCMessage = Infer<typeof JSONRPCMessageSchema>;
+
+/* Empty result */
+export type EmptyResult = Infer<typeof EmptyResultSchema>;
+
+/* Cancellation */
+export type CancelledNotification = Infer<typeof CancelledNotificationSchema>;
+
+/* Initialization */
+export type Implementation = Infer<typeof ImplementationSchema>;
+export type ClientCapabilities = Infer<typeof ClientCapabilitiesSchema>;
+export type InitializeRequest = Infer<typeof InitializeRequestSchema>;
+export type ServerCapabilities = Infer<typeof ServerCapabilitiesSchema>;
+export type InitializeResult = Infer<typeof InitializeResultSchema>;
+export type InitializedNotification = Infer<typeof InitializedNotificationSchema>;
+
+/* Ping */
+export type PingRequest = Infer<typeof PingRequestSchema>;
+
+/* Progress notifications */
+export type Progress = Infer<typeof ProgressSchema>;
+export type ProgressNotification = Infer<typeof ProgressNotificationSchema>;
+
+/* Pagination */
+export type PaginatedRequest = Infer<typeof PaginatedRequestSchema>;
+export type PaginatedResult = Infer<typeof PaginatedResultSchema>;
+
+/* Resources */
+export type ResourceContents = Infer<typeof ResourceContentsSchema>;
+export type TextResourceContents = Infer<typeof TextResourceContentsSchema>;
+export type BlobResourceContents = Infer<typeof BlobResourceContentsSchema>;
+export type Resource = Infer<typeof ResourceSchema>;
+export type ResourceTemplate = Infer<typeof ResourceTemplateSchema>;
+export type ListResourcesRequest = Infer<typeof ListResourcesRequestSchema>;
+export type ListResourcesResult = Infer<typeof ListResourcesResultSchema>;
+export type ListResourceTemplatesRequest = Infer<typeof ListResourceTemplatesRequestSchema>;
+export type ListResourceTemplatesResult = Infer<typeof ListResourceTemplatesResultSchema>;
+export type ReadResourceRequest = Infer<typeof ReadResourceRequestSchema>;
+export type ReadResourceResult = Infer<typeof ReadResourceResultSchema>;
+export type ResourceListChangedNotification = Infer<typeof ResourceListChangedNotificationSchema>;
+export type SubscribeRequest = Infer<typeof SubscribeRequestSchema>;
+export type UnsubscribeRequest = Infer<typeof UnsubscribeRequestSchema>;
+export type ResourceUpdatedNotification = Infer<typeof ResourceUpdatedNotificationSchema>;
+
+/* Prompts */
+export type PromptArgument = Infer<typeof PromptArgumentSchema>;
+export type Prompt = Infer<typeof PromptSchema>;
+export type ListPromptsRequest = Infer<typeof ListPromptsRequestSchema>;
+export type ListPromptsResult = Infer<typeof ListPromptsResultSchema>;
+export type GetPromptRequest = Infer<typeof GetPromptRequestSchema>;
+export type TextContent = Infer<typeof TextContentSchema>;
+export type ImageContent = Infer<typeof ImageContentSchema>;
+export type AudioContent = Infer<typeof AudioContentSchema>;
+export type EmbeddedResource = Infer<typeof EmbeddedResourceSchema>;
+export type PromptMessage = Infer<typeof PromptMessageSchema>;
+export type GetPromptResult = Infer<typeof GetPromptResultSchema>;
+export type PromptListChangedNotification = Infer<typeof PromptListChangedNotificationSchema>;
+
+/* Tools */
+export type ToolAnnotations = Infer<typeof ToolAnnotationsSchema>;
+export type Tool = Infer<typeof ToolSchema>;
+export type ListToolsRequest = Infer<typeof ListToolsRequestSchema>;
+export type ListToolsResult = Infer<typeof ListToolsResultSchema>;
+export type CallToolResult = Infer<typeof CallToolResultSchema>;
+export type CompatibilityCallToolResult = Infer<typeof CompatibilityCallToolResultSchema>;
+export type CallToolRequest = Infer<typeof CallToolRequestSchema>;
+export type ToolListChangedNotification = Infer<typeof ToolListChangedNotificationSchema>;
+
+/* Logging */
+export type LoggingLevel = Infer<typeof LoggingLevelSchema>;
+export type SetLevelRequest = Infer<typeof SetLevelRequestSchema>;
+export type LoggingMessageNotification = Infer<typeof LoggingMessageNotificationSchema>;
+
+/* Sampling */
+export type SamplingMessage = Infer<typeof SamplingMessageSchema>;
+export type CreateMessageRequest = Infer<typeof CreateMessageRequestSchema>;
+export type CreateMessageResult = Infer<typeof CreateMessageResultSchema>;
+
+/* Autocomplete */
+export type ResourceReference = Infer<typeof ResourceReferenceSchema>;
+export type PromptReference = Infer<typeof PromptReferenceSchema>;
+export type CompleteRequest = Infer<typeof CompleteRequestSchema>;
+export type CompleteResult = Infer<typeof CompleteResultSchema>;
+
+/* Roots */
+export type Root = Infer<typeof RootSchema>;
+export type ListRootsRequest = Infer<typeof ListRootsRequestSchema>;
+export type ListRootsResult = Infer<typeof ListRootsResultSchema>;
+export type RootsListChangedNotification = Infer<typeof RootsListChangedNotificationSchema>;
+
+/* Client messages */
+export type ClientRequest = Infer<typeof ClientRequestSchema>;
+export type ClientNotification = Infer<typeof ClientNotificationSchema>;
+export type ClientResult = Infer<typeof ClientResultSchema>;
+
+/* Server messages */
+export type ServerRequest = Infer<typeof ServerRequestSchema>;
+export type ServerNotification = Infer<typeof ServerNotificationSchema>;
+export type ServerResult = Infer<typeof ServerResultSchema>;
+
+import { ZodLiteral, ZodObject, ZodType, z } from "zod";
+import {
+  CancelledNotificationSchema,
+  ClientCapabilities,
+  ErrorCode,
+  isJSONRPCError,
+  isJSONRPCRequest,
+  isJSONRPCResponse,
+  isJSONRPCNotification,
+  JSONRPCError,
+  JSONRPCNotification,
+  JSONRPCRequest,
+  JSONRPCResponse,
+  McpError,
+  Notification,
+  PingRequestSchema,
+  Progress,
+  ProgressNotification,
+  ProgressNotificationSchema,
+  Request,
+  RequestId,
+  Result,
+  ServerCapabilities,
+  RequestMeta,
+} from "../types.js";
+import { Transport, TransportSendOptions } from "./transport.js";
+import { AuthInfo } from "../server/auth/types.js";
+
+/**
+ * Callback for progress notifications.
+ */
+export type ProgressCallback = (progress: Progress) => void;
+
+/**
+ * Additional initialization options.
+ */
+export type ProtocolOptions = {
+  /**
+   * Whether to restrict emitted requests to only those that the remote side has indicated that they can handle, through their advertised capabilities.
+   *
+   * Note that this DOES NOT affect checking of _local_ side capabilities, as it is considered a logic error to mis-specify those.
+   *
+   * Currently this defaults to false, for backwards compatibility with SDK versions that did not advertise capabilities correctly. In future, this will default to true.
+   */
+  enforceStrictCapabilities?: boolean;
+};
+
+/**
+ * The default request timeout, in miliseconds.
+ */
+export const DEFAULT_REQUEST_TIMEOUT_MSEC = 60000;
+
+/**
+ * Options that can be given per request.
+ */
+export type RequestOptions = {
+  /**
+   * If set, requests progress notifications from the remote end (if supported). When progress notifications are received, this callback will be invoked.
+   */
+  onprogress?: ProgressCallback;
+
+  /**
+   * Can be used to cancel an in-flight request. This will cause an AbortError to be raised from request().
+   */
+  signal?: AbortSignal;
+
+  /**
+   * A timeout (in milliseconds) for this request. If exceeded, an McpError with code `RequestTimeout` will be raised from request().
+   *
+   * If not specified, `DEFAULT_REQUEST_TIMEOUT_MSEC` will be used as the timeout.
+   */
+  timeout?: number;
+
+  /**
+   * If true, receiving a progress notification will reset the request timeout.
+   * This is useful for long-running operations that send periodic progress updates.
+   * Default: false
+   */
+  resetTimeoutOnProgress?: boolean;
+
+  /**
+   * Maximum total time (in milliseconds) to wait for a response.
+   * If exceeded, an McpError with code `RequestTimeout` will be raised, regardless of progress notifications.
+   * If not specified, there is no maximum total timeout.
+   */
+  maxTotalTimeout?: number;
+} & TransportSendOptions;
+
+/**
+ * Options that can be given per notification.
+ */
+export type NotificationOptions = {
+  /**
+   * May be used to indicate to the transport which incoming request to associate this outgoing notification with.
+   */
+  relatedRequestId?: RequestId;
+}
+
+/**
+ * Extra data given to request handlers.
+ */
+export type RequestHandlerExtra<SendRequestT extends Request,
+  SendNotificationT extends Notification> = {
+    /**
+     * An abort signal used to communicate if the request was cancelled from the sender's side.
+     */
+    signal: AbortSignal;
+
+    /**
+     * Information about a validated access token, provided to request handlers.
+     */
+    authInfo?: AuthInfo;
+
+    /**
+     * The session ID from the transport, if available.
+     */
+    sessionId?: string;
+
+    /**
+     * Metadata from the original request.
+     */
+    _meta?: RequestMeta;
+
+    /**
+     * The JSON-RPC ID of the request being handled.
+     * This can be useful for tracking or logging purposes.
+     */
+    requestId: RequestId;
+
+    /**
+     * Sends a notification that relates to the current request being handled.
+     * 
+     * This is used by certain transports to correctly associate related messages.
+     */
+    sendNotification: (notification: SendNotificationT) => Promise<void>;
+
+    /**
+     * Sends a request that relates to the current request being handled.
+     * 
+     * This is used by certain transports to correctly associate related messages.
+     */
+    sendRequest: <U extends ZodType<object>>(request: SendRequestT, resultSchema: U, options?: RequestOptions) => Promise<z.infer<U>>;
+  };
+
+/**
+ * Information about a request's timeout state
+ */
+type TimeoutInfo = {
+  timeoutId: ReturnType<typeof setTimeout>;
+  startTime: number;
+  timeout: number;
+  maxTotalTimeout?: number;
+  resetTimeoutOnProgress: boolean;
+  onTimeout: () => void;
+};
+
+/**
+ * Implements MCP protocol framing on top of a pluggable transport, including
+ * features like request/response linking, notifications, and progress.
+ */
+export abstract class Protocol<
+  SendRequestT extends Request,
+  SendNotificationT extends Notification,
+  SendResultT extends Result,
+> {
+  private _transport?: Transport;
+  private _requestMessageId = 0;
+  private _requestHandlers: Map<
+    string,
+    (
+      request: JSONRPCRequest,
+      extra: RequestHandlerExtra<SendRequestT, SendNotificationT>,
+    ) => Promise<SendResultT>
+  > = new Map();
+  private _requestHandlerAbortControllers: Map<RequestId, AbortController> =
+    new Map();
+  private _notificationHandlers: Map<
+    string,
+    (notification: JSONRPCNotification) => Promise<void>
+  > = new Map();
+  private _responseHandlers: Map<
+    number,
+    (response: JSONRPCResponse | Error) => void
+  > = new Map();
+  private _progressHandlers: Map<number, ProgressCallback> = new Map();
+  private _timeoutInfo: Map<number, TimeoutInfo> = new Map();
+
+  /**
+   * Callback for when the connection is closed for any reason.
+   *
+   * This is invoked when close() is called as well.
+   */
+  onclose?: () => void;
+
+  /**
+   * Callback for when an error occurs.
+   *
+   * Note that errors are not necessarily fatal; they are used for reporting any kind of exceptional condition out of band.
+   */
+  onerror?: (error: Error) => void;
+
+  /**
+   * A handler to invoke for any request types that do not have their own handler installed.
+   */
+  fallbackRequestHandler?: (request: Request) => Promise<SendResultT>;
+
+  /**
+   * A handler to invoke for any notification types that do not have their own handler installed.
+   */
+  fallbackNotificationHandler?: (notification: Notification) => Promise<void>;
+
+  constructor(private _options?: ProtocolOptions) {
+    this.setNotificationHandler(CancelledNotificationSchema, (notification) => {
+      const controller = this._requestHandlerAbortControllers.get(
+        notification.params.requestId,
+      );
+      controller?.abort(notification.params.reason);
+    });
+
+    this.setNotificationHandler(ProgressNotificationSchema, (notification) => {
+      this._onprogress(notification as unknown as ProgressNotification);
+    });
+
+    this.setRequestHandler(
+      PingRequestSchema,
+      // Automatic pong by default.
+      (_request) => ({}) as SendResultT,
+    );
+  }
+
+  private _setupTimeout(
+    messageId: number,
+    timeout: number,
+    maxTotalTimeout: number | undefined,
+    onTimeout: () => void,
+    resetTimeoutOnProgress: boolean = false
+  ) {
+    this._timeoutInfo.set(messageId, {
+      timeoutId: setTimeout(onTimeout, timeout),
+      startTime: Date.now(),
+      timeout,
+      maxTotalTimeout,
+      resetTimeoutOnProgress,
+      onTimeout
+    });
+  }
+
+  private _resetTimeout(messageId: number): boolean {
+    const info = this._timeoutInfo.get(messageId);
+    if (!info) return false;
+
+    const totalElapsed = Date.now() - info.startTime;
+    if (info.maxTotalTimeout && totalElapsed >= info.maxTotalTimeout) {
+      this._timeoutInfo.delete(messageId);
+      throw new McpError(
+        ErrorCode.RequestTimeout,
+        "Maximum total timeout exceeded",
+        { maxTotalTimeout: info.maxTotalTimeout, totalElapsed }
+      );
+    }
+
+    clearTimeout(info.timeoutId);
+    info.timeoutId = setTimeout(info.onTimeout, info.timeout);
+    return true;
+  }
+
+  private _cleanupTimeout(messageId: number) {
+    const info = this._timeoutInfo.get(messageId);
+    if (info) {
+      clearTimeout(info.timeoutId);
+      this._timeoutInfo.delete(messageId);
+    }
+  }
+
+  /**
+   * Attaches to the given transport, starts it, and starts listening for messages.
+   *
+   * The Protocol object assumes ownership of the Transport, replacing any callbacks that have already been set, and expects that it is the only user of the Transport instance going forward.
+   */
+  async connect(transport: Transport): Promise<void> {
+    this._transport = transport;
+    this._transport.onclose = () => {
+      this._onclose();
+    };
+
+    this._transport.onerror = (error: Error) => {
+      this._onerror(error);
+    };
+
+    this._transport.onmessage = (message, extra) => {
+      if (isJSONRPCResponse(message) || isJSONRPCError(message)) {
+        this._onresponse(message);
+      } else if (isJSONRPCRequest(message)) {
+        this._onrequest(message, extra);
+      } else if (isJSONRPCNotification(message)) {
+        this._onnotification(message);
+      } else {
+        this._onerror(new Error(`Unknown message type: ${JSON.stringify(message)}`));
+      }
+    };
+
+    await this._transport.start();
+  }
+
+  private _onclose(): void {
+    const responseHandlers = this._responseHandlers;
+    this._responseHandlers = new Map();
+    this._progressHandlers.clear();
+    this._transport = undefined;
+    this.onclose?.();
+
+    const error = new McpError(ErrorCode.ConnectionClosed, "Connection closed");
+    for (const handler of responseHandlers.values()) {
+      handler(error);
+    }
+  }
+
+  private _onerror(error: Error): void {
+    this.onerror?.(error);
+  }
+
+  private _onnotification(notification: JSONRPCNotification): void {
+    const handler =
+      this._notificationHandlers.get(notification.method) ??
+      this.fallbackNotificationHandler;
+
+    // Ignore notifications not being subscribed to.
+    if (handler === undefined) {
+      return;
+    }
+
+    // Starting with Promise.resolve() puts any synchronous errors into the monad as well.
+    Promise.resolve()
+      .then(() => handler(notification))
+      .catch((error) =>
+        this._onerror(
+          new Error(`Uncaught error in notification handler: ${error}`),
+        ),
+      );
+  }
+
+  private _onrequest(request: JSONRPCRequest, extra?: { authInfo?: AuthInfo }): void {
+    const handler =
+      this._requestHandlers.get(request.method) ?? this.fallbackRequestHandler;
+
+    if (handler === undefined) {
+      this._transport
+        ?.send({
+          jsonrpc: "2.0",
+          id: request.id,
+          error: {
+            code: ErrorCode.MethodNotFound,
+            message: "Method not found",
+          },
+        })
+        .catch((error) =>
+          this._onerror(
+            new Error(`Failed to send an error response: ${error}`),
+          ),
+        );
+      return;
+    }
+
+    const abortController = new AbortController();
+    this._requestHandlerAbortControllers.set(request.id, abortController);
+
+    const fullExtra: RequestHandlerExtra<SendRequestT, SendNotificationT> = {
+      signal: abortController.signal,
+      sessionId: this._transport?.sessionId,
+      _meta: request.params?._meta,
+      sendNotification:
+        (notification) =>
+          this.notification(notification, { relatedRequestId: request.id }),
+      sendRequest: (r, resultSchema, options?) =>
+        this.request(r, resultSchema, { ...options, relatedRequestId: request.id }),
+      authInfo: extra?.authInfo,
+      requestId: request.id,
+    };
+
+    // Starting with Promise.resolve() puts any synchronous errors into the monad as well.
+    Promise.resolve()
+      .then(() => handler(request, fullExtra))
+      .then(
+        (result) => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          return this._transport?.send({
+            result,
+            jsonrpc: "2.0",
+            id: request.id,
+          });
+        },
+        (error) => {
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          return this._transport?.send({
+            jsonrpc: "2.0",
+            id: request.id,
+            error: {
+              code: Number.isSafeInteger(error["code"])
+                ? error["code"]
+                : ErrorCode.InternalError,
+              message: error.message ?? "Internal error",
+            },
+          });
+        },
+      )
+      .catch((error) =>
+        this._onerror(new Error(`Failed to send response: ${error}`)),
+      )
+      .finally(() => {
+        this._requestHandlerAbortControllers.delete(request.id);
+      });
+  }
+
+  private _onprogress(notification: ProgressNotification): void {
+    const { progressToken, ...params } = notification.params;
+    const messageId = Number(progressToken);
+
+    const handler = this._progressHandlers.get(messageId);
+    if (!handler) {
+      this._onerror(new Error(`Received a progress notification for an unknown token: ${JSON.stringify(notification)}`));
+      return;
+    }
+
+    const responseHandler = this._responseHandlers.get(messageId);
+    const timeoutInfo = this._timeoutInfo.get(messageId);
+
+    if (timeoutInfo && responseHandler && timeoutInfo.resetTimeoutOnProgress) {
+      try {
+        this._resetTimeout(messageId);
+      } catch (error) {
+        responseHandler(error as Error);
+        return;
+      }
+    }
+
+    handler(params);
+  }
+
+  private _onresponse(response: JSONRPCResponse | JSONRPCError): void {
+    const messageId = Number(response.id);
+    const handler = this._responseHandlers.get(messageId);
+    if (handler === undefined) {
+      this._onerror(
+        new Error(
+          `Received a response for an unknown message ID: ${JSON.stringify(response)}`,
+        ),
+      );
+      return;
+    }
+
+    this._responseHandlers.delete(messageId);
+    this._progressHandlers.delete(messageId);
+    this._cleanupTimeout(messageId);
+
+    if (isJSONRPCResponse(response)) {
+      handler(response);
+    } else {
+      const error = new McpError(
+        response.error.code,
+        response.error.message,
+        response.error.data,
+      );
+      handler(error);
+    }
+  }
+
+  get transport(): Transport | undefined {
+    return this._transport;
+  }
+
+  /**
+   * Closes the connection.
+   */
+  async close(): Promise<void> {
+    await this._transport?.close();
+  }
+
+  /**
+   * A method to check if a capability is supported by the remote side, for the given method to be called.
+   *
+   * This should be implemented by subclasses.
+   */
+  protected abstract assertCapabilityForMethod(
+    method: SendRequestT["method"],
+  ): void;
+
+  /**
+   * A method to check if a notification is supported by the local side, for the given method to be sent.
+   *
+   * This should be implemented by subclasses.
+   */
+  protected abstract assertNotificationCapability(
+    method: SendNotificationT["method"],
+  ): void;
+
+  /**
+   * A method to check if a request handler is supported by the local side, for the given method to be handled.
+   *
+   * This should be implemented by subclasses.
+   */
+  protected abstract assertRequestHandlerCapability(method: string): void;
+
+  /**
+   * Sends a request and wait for a response.
+   *
+   * Do not use this method to emit notifications! Use notification() instead.
+   */
+  request<T extends ZodType<object>>(
+    request: SendRequestT,
+    resultSchema: T,
+    options?: RequestOptions,
+  ): Promise<z.infer<T>> {
+    const { relatedRequestId, resumptionToken, onresumptiontoken } = options ?? {};
+
+    return new Promise((resolve, reject) => {
+      if (!this._transport) {
+        reject(new Error("Not connected"));
+        return;
+      }
+
+      if (this._options?.enforceStrictCapabilities === true) {
+        this.assertCapabilityForMethod(request.method);
+      }
+
+      options?.signal?.throwIfAborted();
+
+      const messageId = this._requestMessageId++;
+      const jsonrpcRequest: JSONRPCRequest = {
+        ...request,
+        jsonrpc: "2.0",
+        id: messageId,
+      };
+
+      if (options?.onprogress) {
+        this._progressHandlers.set(messageId, options.onprogress);
+        jsonrpcRequest.params = {
+          ...request.params,
+          _meta: { progressToken: messageId },
+        };
+      }
+
+      const cancel = (reason: unknown) => {
+        this._responseHandlers.delete(messageId);
+        this._progressHandlers.delete(messageId);
+        this._cleanupTimeout(messageId);
+
+        this._transport
+          ?.send({
+            jsonrpc: "2.0",
+            method: "notifications/cancelled",
+            params: {
+              requestId: messageId,
+              reason: String(reason),
+            },
+          }, { relatedRequestId, resumptionToken, onresumptiontoken })
+          .catch((error) =>
+            this._onerror(new Error(`Failed to send cancellation: ${error}`)),
+          );
+
+        reject(reason);
+      };
+
+      this._responseHandlers.set(messageId, (response) => {
+        if (options?.signal?.aborted) {
+          return;
+        }
+
+        if (response instanceof Error) {
+          return reject(response);
+        }
+
+        try {
+          const result = resultSchema.parse(response.result);
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+
+      options?.signal?.addEventListener("abort", () => {
+        cancel(options?.signal?.reason);
+      });
+
+      const timeout = options?.timeout ?? DEFAULT_REQUEST_TIMEOUT_MSEC;
+      const timeoutHandler = () => cancel(new McpError(
+        ErrorCode.RequestTimeout,
+        "Request timed out",
+        { timeout }
+      ));
+
+      this._setupTimeout(messageId, timeout, options?.maxTotalTimeout, timeoutHandler, options?.resetTimeoutOnProgress ?? false);
+
+      this._transport.send(jsonrpcRequest, { relatedRequestId, resumptionToken, onresumptiontoken }).catch((error) => {
+        this._cleanupTimeout(messageId);
+        reject(error);
+      });
+    });
+  }
+
+  /**
+   * Emits a notification, which is a one-way message that does not expect a response.
+   */
+  async notification(notification: SendNotificationT, options?: NotificationOptions): Promise<void> {
+    if (!this._transport) {
+      throw new Error("Not connected");
+    }
+
+    this.assertNotificationCapability(notification.method);
+
+    const jsonrpcNotification: JSONRPCNotification = {
+      ...notification,
+      jsonrpc: "2.0",
+    };
+
+    await this._transport.send(jsonrpcNotification, options);
+  }
+
+  /**
+   * Registers a handler to invoke when this protocol object receives a request with the given method.
+   *
+   * Note that this will replace any previous request handler for the same method.
+   */
+  setRequestHandler<
+    T extends ZodObject<{
+      method: ZodLiteral<string>;
+    }>,
+  >(
+    requestSchema: T,
+    handler: (
+      request: z.infer<T>,
+      extra: RequestHandlerExtra<SendRequestT, SendNotificationT>,
+    ) => SendResultT | Promise<SendResultT>,
+  ): void {
+    const method = requestSchema.shape.method.value;
+    this.assertRequestHandlerCapability(method);
+
+    this._requestHandlers.set(method, (request, extra) => {
+      return Promise.resolve(handler(requestSchema.parse(request), extra));
+    });
+  }
+
+  /**
+   * Removes the request handler for the given method.
+   */
+  removeRequestHandler(method: string): void {
+    this._requestHandlers.delete(method);
+  }
+
+  /**
+   * Asserts that a request handler has not already been set for the given method, in preparation for a new one being automatically installed.
+   */
+  assertCanSetRequestHandler(method: string): void {
+    if (this._requestHandlers.has(method)) {
+      throw new Error(
+        `A request handler for ${method} already exists, which would be overridden`,
+      );
+    }
+  }
+
+  /**
+   * Registers a handler to invoke when this protocol object receives a notification with the given method.
+   *
+   * Note that this will replace any previous notification handler for the same method.
+   */
+  setNotificationHandler<
+    T extends ZodObject<{
+      method: ZodLiteral<string>;
+    }>,
+  >(
+    notificationSchema: T,
+    handler: (notification: z.infer<T>) => void | Promise<void>,
+  ): void {
+    this._notificationHandlers.set(
+      notificationSchema.shape.method.value,
+      (notification) =>
+        Promise.resolve(handler(notificationSchema.parse(notification))),
+    );
+  }
+
+  /**
+   * Removes the notification handler for the given method.
+   */
+  removeNotificationHandler(method: string): void {
+    this._notificationHandlers.delete(method);
+  }
+}
+
+export function mergeCapabilities<
+  T extends ServerCapabilities | ClientCapabilities,
+>(base: T, additional: T): T {
+  return Object.entries(additional).reduce(
+    (acc, [key, value]) => {
+      if (value && typeof value === "object") {
+        acc[key] = acc[key] ? { ...acc[key], ...value } : value;
+      } else {
+        acc[key] = value;
+      }
+      return acc;
+    },
+    { ...base },
+  );
+}
+
+
+import { AuthInfo } from "../server/auth/types.js";
+import { JSONRPCMessage, RequestId } from "../types.js";
+
+/**
+ * Options for sending a JSON-RPC message.
+ */
+export type TransportSendOptions = {
+  /** 
+   * If present, `relatedRequestId` is used to indicate to the transport which incoming request to associate this outgoing message with.
+   */
+  relatedRequestId?: RequestId;
+
+  /**
+   * The resumption token used to continue long-running requests that were interrupted.
+   *
+   * This allows clients to reconnect and continue from where they left off, if supported by the transport.
+   */
+  resumptionToken?: string;
+
+  /**
+   * A callback that is invoked when the resumption token changes, if supported by the transport.
+   *
+   * This allows clients to persist the latest token for potential reconnection.
+   */
+  onresumptiontoken?: (token: string) => void;
+}
+/**
+ * Describes the minimal contract for a MCP transport that a client or server can communicate over.
+ */
+export interface Transport {
+  /**
+   * Starts processing messages on the transport, including any connection steps that might need to be taken.
+   *
+   * This method should only be called after callbacks are installed, or else messages may be lost.
+   *
+   * NOTE: This method should not be called explicitly when using Client, Server, or Protocol classes, as they will implicitly call start().
+   */
+  start(): Promise<void>;
+
+  /**
+   * Sends a JSON-RPC message (request or response).
+   * 
+   * If present, `relatedRequestId` is used to indicate to the transport which incoming request to associate this outgoing message with.
+   */
+  send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void>;
+
+  /**
+   * Closes the connection.
+   */
+  close(): Promise<void>;
+
+  /**
+   * Callback for when the connection is closed for any reason.
+   *
+   * This should be invoked when close() is called as well.
+   */
+  onclose?: () => void;
+
+  /**
+   * Callback for when an error occurs.
+   *
+   * Note that errors are not necessarily fatal; they are used for reporting any kind of exceptional condition out of band.
+   */
+  onerror?: (error: Error) => void;
+
+  /**
+   * Callback for when a message (request or response) is received over the connection.
+   * 
+   * Includes the authInfo if the transport is authenticated.
+   * 
+   */
+  onmessage?: (message: JSONRPCMessage, extra?: { authInfo?: AuthInfo }) => void;
+
+  /**
+   * The session ID generated for this connection.
+   */
+  sessionId?: string;
+}
+
+
+// Claude-authored implementation of RFC 6570 URI Templates
+
+export type Variables = Record<string, string | string[]>;
+
+const MAX_TEMPLATE_LENGTH = 1000000; // 1MB
+const MAX_VARIABLE_LENGTH = 1000000; // 1MB
+const MAX_TEMPLATE_EXPRESSIONS = 10000;
+const MAX_REGEX_LENGTH = 1000000; // 1MB
+
+export class UriTemplate {
+  /**
+   * Returns true if the given string contains any URI template expressions.
+   * A template expression is a sequence of characters enclosed in curly braces,
+   * like {foo} or {?bar}.
+   */
+  static isTemplate(str: string): boolean {
+    // Look for any sequence of characters between curly braces
+    // that isn't just whitespace
+    return /\{[^}\s]+\}/.test(str);
+  }
+
+  private static validateLength(
+    str: string,
+    max: number,
+    context: string,
+  ): void {
+    if (str.length > max) {
+      throw new Error(
+        `${context} exceeds maximum length of ${max} characters (got ${str.length})`,
+      );
+    }
+  }
+  private readonly template: string;
+  private readonly parts: Array<
+    | string
+    | { name: string; operator: string; names: string[]; exploded: boolean }
+  >;
+
+  get variableNames(): string[] {
+    return this.parts.flatMap((part) => typeof part === 'string' ? [] : part.names);
+  }
+
+  constructor(template: string) {
+    UriTemplate.validateLength(template, MAX_TEMPLATE_LENGTH, "Template");
+    this.template = template;
+    this.parts = this.parse(template);
+  }
+
+  toString(): string {
+    return this.template;
+  }
+
+  private parse(
+    template: string,
+  ): Array<
+    | string
+    | { name: string; operator: string; names: string[]; exploded: boolean }
+  > {
+    const parts: Array<
+      | string
+      | { name: string; operator: string; names: string[]; exploded: boolean }
+    > = [];
+    let currentText = "";
+    let i = 0;
+    let expressionCount = 0;
+
+    while (i < template.length) {
+      if (template[i] === "{") {
+        if (currentText) {
+          parts.push(currentText);
+          currentText = "";
+        }
+        const end = template.indexOf("}", i);
+        if (end === -1) throw new Error("Unclosed template expression");
+
+        expressionCount++;
+        if (expressionCount > MAX_TEMPLATE_EXPRESSIONS) {
+          throw new Error(
+            `Template contains too many expressions (max ${MAX_TEMPLATE_EXPRESSIONS})`,
+          );
+        }
+
+        const expr = template.slice(i + 1, end);
+        const operator = this.getOperator(expr);
+        const exploded = expr.includes("*");
+        const names = this.getNames(expr);
+        const name = names[0];
+
+        // Validate variable name length
+        for (const name of names) {
+          UriTemplate.validateLength(
+            name,
+            MAX_VARIABLE_LENGTH,
+            "Variable name",
+          );
+        }
+
+        parts.push({ name, operator, names, exploded });
+        i = end + 1;
+      } else {
+        currentText += template[i];
+        i++;
+      }
+    }
+
+    if (currentText) {
+      parts.push(currentText);
+    }
+
+    return parts;
+  }
+
+  private getOperator(expr: string): string {
+    const operators = ["+", "#", ".", "/", "?", "&"];
+    return operators.find((op) => expr.startsWith(op)) || "";
+  }
+
+  private getNames(expr: string): string[] {
+    const operator = this.getOperator(expr);
+    return expr
+      .slice(operator.length)
+      .split(",")
+      .map((name) => name.replace("*", "").trim())
+      .filter((name) => name.length > 0);
+  }
+
+  private encodeValue(value: string, operator: string): string {
+    UriTemplate.validateLength(value, MAX_VARIABLE_LENGTH, "Variable value");
+    if (operator === "+" || operator === "#") {
+      return encodeURI(value);
+    }
+    return encodeURIComponent(value);
+  }
+
+  private expandPart(
+    part: {
+      name: string;
+      operator: string;
+      names: string[];
+      exploded: boolean;
+    },
+    variables: Variables,
+  ): string {
+    if (part.operator === "?" || part.operator === "&") {
+      const pairs = part.names
+        .map((name) => {
+          const value = variables[name];
+          if (value === undefined) return "";
+          const encoded = Array.isArray(value)
+            ? value.map((v) => this.encodeValue(v, part.operator)).join(",")
+            : this.encodeValue(value.toString(), part.operator);
+          return `${name}=${encoded}`;
+        })
+        .filter((pair) => pair.length > 0);
+
+      if (pairs.length === 0) return "";
+      const separator = part.operator === "?" ? "?" : "&";
+      return separator + pairs.join("&");
+    }
+
+    if (part.names.length > 1) {
+      const values = part.names
+        .map((name) => variables[name])
+        .filter((v) => v !== undefined);
+      if (values.length === 0) return "";
+      return values.map((v) => (Array.isArray(v) ? v[0] : v)).join(",");
+    }
+
+    const value = variables[part.name];
+    if (value === undefined) return "";
+
+    const values = Array.isArray(value) ? value : [value];
+    const encoded = values.map((v) => this.encodeValue(v, part.operator));
+
+    switch (part.operator) {
+      case "":
+        return encoded.join(",");
+      case "+":
+        return encoded.join(",");
+      case "#":
+        return "#" + encoded.join(",");
+      case ".":
+        return "." + encoded.join(".");
+      case "/":
+        return "/" + encoded.join("/");
+      default:
+        return encoded.join(",");
+    }
+  }
+
+  expand(variables: Variables): string {
+    let result = "";
+    let hasQueryParam = false;
+
+    for (const part of this.parts) {
+      if (typeof part === "string") {
+        result += part;
+        continue;
+      }
+
+      const expanded = this.expandPart(part, variables);
+      if (!expanded) continue;
+
+      // Convert ? to & if we already have a query parameter
+      if ((part.operator === "?" || part.operator === "&") && hasQueryParam) {
+        result += expanded.replace("?", "&");
+      } else {
+        result += expanded;
+      }
+
+      if (part.operator === "?" || part.operator === "&") {
+        hasQueryParam = true;
+      }
+    }
+
+    return result;
+  }
+
+  private escapeRegExp(str: string): string {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  private partToRegExp(part: {
+    name: string;
+    operator: string;
+    names: string[];
+    exploded: boolean;
+  }): Array<{ pattern: string; name: string }> {
+    const patterns: Array<{ pattern: string; name: string }> = [];
+
+    // Validate variable name length for matching
+    for (const name of part.names) {
+      UriTemplate.validateLength(name, MAX_VARIABLE_LENGTH, "Variable name");
+    }
+
+    if (part.operator === "?" || part.operator === "&") {
+      for (let i = 0; i < part.names.length; i++) {
+        const name = part.names[i];
+        const prefix = i === 0 ? "\\" + part.operator : "&";
+        patterns.push({
+          pattern: prefix + this.escapeRegExp(name) + "=([^&]+)",
+          name,
+        });
+      }
+      return patterns;
+    }
+
+    let pattern: string;
+    const name = part.name;
+
+    switch (part.operator) {
+      case "":
+        pattern = part.exploded ? "([^/]+(?:,[^/]+)*)" : "([^/,]+)";
+        break;
+      case "+":
+      case "#":
+        pattern = "(.+)";
+        break;
+      case ".":
+        pattern = "\\.([^/,]+)";
+        break;
+      case "/":
+        pattern = "/" + (part.exploded ? "([^/]+(?:,[^/]+)*)" : "([^/,]+)");
+        break;
+      default:
+        pattern = "([^/]+)";
+    }
+
+    patterns.push({ pattern, name });
+    return patterns;
+  }
+
+  match(uri: string): Variables | null {
+    UriTemplate.validateLength(uri, MAX_TEMPLATE_LENGTH, "URI");
+    let pattern = "^";
+    const names: Array<{ name: string; exploded: boolean }> = [];
+
+    for (const part of this.parts) {
+      if (typeof part === "string") {
+        pattern += this.escapeRegExp(part);
+      } else {
+        const patterns = this.partToRegExp(part);
+        for (const { pattern: partPattern, name } of patterns) {
+          pattern += partPattern;
+          names.push({ name, exploded: part.exploded });
+        }
+      }
+    }
+
+    pattern += "$";
+    UriTemplate.validateLength(
+      pattern,
+      MAX_REGEX_LENGTH,
+      "Generated regex pattern",
+    );
+    const regex = new RegExp(pattern);
+    const match = uri.match(regex);
+
+    if (!match) return null;
+
+    const result: Variables = {};
+    for (let i = 0; i < names.length; i++) {
+      const { name, exploded } = names[i];
+      const value = match[i + 1];
+      const cleanName = name.replace("*", "");
+
+      if (exploded && value.includes(",")) {
+        result[cleanName] = value.split(",");
+      } else {
+        result[cleanName] = value;
+      }
+    }
+
+    return result;
+  }
+}
+
+
+import {
+  mergeCapabilities,
+  Protocol,
+  ProtocolOptions,
+  RequestOptions,
+} from "../shared/protocol.js";
+import { Transport } from "../shared/transport.js";
+import {
+  CallToolRequest,
+  CallToolResultSchema,
+  ClientCapabilities,
+  ClientNotification,
+  ClientRequest,
+  ClientResult,
+  CompatibilityCallToolResultSchema,
+  CompleteRequest,
+  CompleteResultSchema,
+  EmptyResultSchema,
+  GetPromptRequest,
+  GetPromptResultSchema,
+  Implementation,
+  InitializeResultSchema,
+  LATEST_PROTOCOL_VERSION,
+  ListPromptsRequest,
+  ListPromptsResultSchema,
+  ListResourcesRequest,
+  ListResourcesResultSchema,
+  ListResourceTemplatesRequest,
+  ListResourceTemplatesResultSchema,
+  ListToolsRequest,
+  ListToolsResultSchema,
+  LoggingLevel,
+  Notification,
+  ReadResourceRequest,
+  ReadResourceResultSchema,
+  Request,
+  Result,
+  ServerCapabilities,
+  SubscribeRequest,
+  SUPPORTED_PROTOCOL_VERSIONS,
+  UnsubscribeRequest,
+} from "../types.js";
+
+export type ClientOptions = ProtocolOptions & {
+  /**
+   * Capabilities to advertise as being supported by this client.
+   */
+  capabilities?: ClientCapabilities;
+};
+
+/**
+ * An MCP client on top of a pluggable transport.
+ *
+ * The client will automatically begin the initialization flow with the server when connect() is called.
+ *
+ * To use with custom types, extend the base Request/Notification/Result types and pass them as type parameters:
+ *
+ * ```typescript
+ * // Custom schemas
+ * const CustomRequestSchema = RequestSchema.extend({...})
+ * const CustomNotificationSchema = NotificationSchema.extend({...})
+ * const CustomResultSchema = ResultSchema.extend({...})
+ *
+ * // Type aliases
+ * type CustomRequest = z.infer<typeof CustomRequestSchema>
+ * type CustomNotification = z.infer<typeof CustomNotificationSchema>
+ * type CustomResult = z.infer<typeof CustomResultSchema>
+ *
+ * // Create typed client
+ * const client = new Client<CustomRequest, CustomNotification, CustomResult>({
+ *   name: "CustomClient",
+ *   version: "1.0.0"
+ * })
+ * ```
+ */
+export class Client<
+  RequestT extends Request = Request,
+  NotificationT extends Notification = Notification,
+  ResultT extends Result = Result,
+> extends Protocol<
+  ClientRequest | RequestT,
+  ClientNotification | NotificationT,
+  ClientResult | ResultT
+> {
+  private _serverCapabilities?: ServerCapabilities;
+  private _serverVersion?: Implementation;
+  private _capabilities: ClientCapabilities;
+  private _instructions?: string;
+
+  /**
+   * Initializes this client with the given name and version information.
+   */
+  constructor(
+    private _clientInfo: Implementation,
+    options?: ClientOptions,
+  ) {
+    super(options);
+    this._capabilities = options?.capabilities ?? {};
+  }
+
+  /**
+   * Registers new capabilities. This can only be called before connecting to a transport.
+   *
+   * The new capabilities will be merged with any existing capabilities previously given (e.g., at initialization).
+   */
+  public registerCapabilities(capabilities: ClientCapabilities): void {
+    if (this.transport) {
+      throw new Error(
+        "Cannot register capabilities after connecting to transport",
+      );
+    }
+
+    this._capabilities = mergeCapabilities(this._capabilities, capabilities);
+  }
+
+  protected assertCapability(
+    capability: keyof ServerCapabilities,
+    method: string,
+  ): void {
+    if (!this._serverCapabilities?.[capability]) {
+      throw new Error(
+        `Server does not support ${capability} (required for ${method})`,
+      );
+    }
+  }
+
+  override async connect(transport: Transport, options?: RequestOptions): Promise<void> {
+    await super.connect(transport);
+    // When transport sessionId is already set this means we are trying to reconnect.
+    // In this case we don't need to initialize again.
+    if (transport.sessionId !== undefined) {
+      return;
+    }
+    try {
+      const result = await this.request(
+        {
+          method: "initialize",
+          params: {
+            protocolVersion: LATEST_PROTOCOL_VERSION,
+            capabilities: this._capabilities,
+            clientInfo: this._clientInfo,
+          },
+        },
+        InitializeResultSchema,
+        options
+      );
+
+      if (result === undefined) {
+        throw new Error(`Server sent invalid initialize result: ${result}`);
+      }
+
+      if (!SUPPORTED_PROTOCOL_VERSIONS.includes(result.protocolVersion)) {
+        throw new Error(
+          `Server's protocol version is not supported: ${result.protocolVersion}`,
+        );
+      }
+
+      this._serverCapabilities = result.capabilities;
+      this._serverVersion = result.serverInfo;
+
+      this._instructions = result.instructions;
+
+      await this.notification({
+        method: "notifications/initialized",
+      });
+    } catch (error) {
+      // Disconnect if initialization fails.
+      void this.close();
+      throw error;
+    }
+  }
+
+  /**
+   * After initialization has completed, this will be populated with the server's reported capabilities.
+   */
+  getServerCapabilities(): ServerCapabilities | undefined {
+    return this._serverCapabilities;
+  }
+
+  /**
+   * After initialization has completed, this will be populated with information about the server's name and version.
+   */
+  getServerVersion(): Implementation | undefined {
+    return this._serverVersion;
+  }
+
+  /**
+   * After initialization has completed, this may be populated with information about the server's instructions.
+   */
+  getInstructions(): string | undefined {
+    return this._instructions;
+  }
+
+  protected assertCapabilityForMethod(method: RequestT["method"]): void {
+    switch (method as ClientRequest["method"]) {
+      case "logging/setLevel":
+        if (!this._serverCapabilities?.logging) {
+          throw new Error(
+            `Server does not support logging (required for ${method})`,
+          );
+        }
+        break;
+
+      case "prompts/get":
+      case "prompts/list":
+        if (!this._serverCapabilities?.prompts) {
+          throw new Error(
+            `Server does not support prompts (required for ${method})`,
+          );
+        }
+        break;
+
+      case "resources/list":
+      case "resources/templates/list":
+      case "resources/read":
+      case "resources/subscribe":
+      case "resources/unsubscribe":
+        if (!this._serverCapabilities?.resources) {
+          throw new Error(
+            `Server does not support resources (required for ${method})`,
+          );
+        }
+
+        if (
+          method === "resources/subscribe" &&
+          !this._serverCapabilities.resources.subscribe
+        ) {
+          throw new Error(
+            `Server does not support resource subscriptions (required for ${method})`,
+          );
+        }
+
+        break;
+
+      case "tools/call":
+      case "tools/list":
+        if (!this._serverCapabilities?.tools) {
+          throw new Error(
+            `Server does not support tools (required for ${method})`,
+          );
+        }
+        break;
+
+      case "completion/complete":
+        if (!this._serverCapabilities?.completions) {
+          throw new Error(
+            `Server does not support completions (required for ${method})`,
+          );
+        }
+        break;
+
+      case "initialize":
+        // No specific capability required for initialize
+        break;
+
+      case "ping":
+        // No specific capability required for ping
+        break;
+    }
+  }
+
+  protected assertNotificationCapability(
+    method: NotificationT["method"],
+  ): void {
+    switch (method as ClientNotification["method"]) {
+      case "notifications/roots/list_changed":
+        if (!this._capabilities.roots?.listChanged) {
+          throw new Error(
+            `Client does not support roots list changed notifications (required for ${method})`,
+          );
+        }
+        break;
+
+      case "notifications/initialized":
+        // No specific capability required for initialized
+        break;
+
+      case "notifications/cancelled":
+        // Cancellation notifications are always allowed
+        break;
+
+      case "notifications/progress":
+        // Progress notifications are always allowed
+        break;
+    }
+  }
+
+  protected assertRequestHandlerCapability(method: string): void {
+    switch (method) {
+      case "sampling/createMessage":
+        if (!this._capabilities.sampling) {
+          throw new Error(
+            `Client does not support sampling capability (required for ${method})`,
+          );
+        }
+        break;
+
+      case "roots/list":
+        if (!this._capabilities.roots) {
+          throw new Error(
+            `Client does not support roots capability (required for ${method})`,
+          );
+        }
+        break;
+
+      case "ping":
+        // No specific capability required for ping
+        break;
+    }
+  }
+
+  async ping(options?: RequestOptions) {
+    return this.request({ method: "ping" }, EmptyResultSchema, options);
+  }
+
+  async complete(params: CompleteRequest["params"], options?: RequestOptions) {
+    return this.request(
+      { method: "completion/complete", params },
+      CompleteResultSchema,
+      options,
+    );
+  }
+
+  async setLoggingLevel(level: LoggingLevel, options?: RequestOptions) {
+    return this.request(
+      { method: "logging/setLevel", params: { level } },
+      EmptyResultSchema,
+      options,
+    );
+  }
+
+  async getPrompt(
+    params: GetPromptRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "prompts/get", params },
+      GetPromptResultSchema,
+      options,
+    );
+  }
+
+  async listPrompts(
+    params?: ListPromptsRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "prompts/list", params },
+      ListPromptsResultSchema,
+      options,
+    );
+  }
+
+  async listResources(
+    params?: ListResourcesRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "resources/list", params },
+      ListResourcesResultSchema,
+      options,
+    );
+  }
+
+  async listResourceTemplates(
+    params?: ListResourceTemplatesRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "resources/templates/list", params },
+      ListResourceTemplatesResultSchema,
+      options,
+    );
+  }
+
+  async readResource(
+    params: ReadResourceRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "resources/read", params },
+      ReadResourceResultSchema,
+      options,
+    );
+  }
+
+  async subscribeResource(
+    params: SubscribeRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "resources/subscribe", params },
+      EmptyResultSchema,
+      options,
+    );
+  }
+
+  async unsubscribeResource(
+    params: UnsubscribeRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "resources/unsubscribe", params },
+      EmptyResultSchema,
+      options,
+    );
+  }
+
+  async callTool(
+    params: CallToolRequest["params"],
+    resultSchema:
+      | typeof CallToolResultSchema
+      | typeof CompatibilityCallToolResultSchema = CallToolResultSchema,
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "tools/call", params },
+      resultSchema,
+      options,
+    );
+  }
+
+  async listTools(
+    params?: ListToolsRequest["params"],
+    options?: RequestOptions,
+  ) {
+    return this.request(
+      { method: "tools/list", params },
+      ListToolsResultSchema,
+      options,
+    );
+  }
+
+  async sendRootsListChanged() {
+    return this.notification({ method: "notifications/roots/list_changed" });
+  }
+}
+
+
+import { EventSource, type ErrorEvent, type EventSourceInit } from "eventsource";
+import { Transport } from "../shared/transport.js";
+import { JSONRPCMessage, JSONRPCMessageSchema } from "../types.js";
+import { auth, AuthResult, OAuthClientProvider, UnauthorizedError } from "./auth.js";
+
+export class SseError extends Error {
+  constructor(
+    public readonly code: number | undefined,
+    message: string | undefined,
+    public readonly event: ErrorEvent,
+  ) {
+    super(`SSE error: ${message}`);
+  }
+}
+
+/**
+ * Configuration options for the `SSEClientTransport`.
+ */
+export type SSEClientTransportOptions = {
+  /**
+   * An OAuth client provider to use for authentication.
+   * 
+   * When an `authProvider` is specified and the SSE connection is started:
+   * 1. The connection is attempted with any existing access token from the `authProvider`.
+   * 2. If the access token has expired, the `authProvider` is used to refresh the token.
+   * 3. If token refresh fails or no access token exists, and auth is required, `OAuthClientProvider.redirectToAuthorization` is called, and an `UnauthorizedError` will be thrown from `connect`/`start`.
+   * 
+   * After the user has finished authorizing via their user agent, and is redirected back to the MCP client application, call `SSEClientTransport.finishAuth` with the authorization code before retrying the connection.
+   * 
+   * If an `authProvider` is not provided, and auth is required, an `UnauthorizedError` will be thrown.
+   * 
+   * `UnauthorizedError` might also be thrown when sending any message over the SSE transport, indicating that the session has expired, and needs to be re-authed and reconnected.
+   */
+  authProvider?: OAuthClientProvider;
+
+  /**
+   * Customizes the initial SSE request to the server (the request that begins the stream).
+   * 
+   * NOTE: Setting this property will prevent an `Authorization` header from
+   * being automatically attached to the SSE request, if an `authProvider` is
+   * also given. This can be worked around by setting the `Authorization` header
+   * manually.
+   */
+  eventSourceInit?: EventSourceInit;
+
+  /**
+   * Customizes recurring POST requests to the server.
+   */
+  requestInit?: RequestInit;
+};
+
+/**
+ * Client transport for SSE: this will connect to a server using Server-Sent Events for receiving
+ * messages and make separate POST requests for sending messages.
+ */
+export class SSEClientTransport implements Transport {
+  private _eventSource?: EventSource;
+  private _endpoint?: URL;
+  private _abortController?: AbortController;
+  private _url: URL;
+  private _eventSourceInit?: EventSourceInit;
+  private _requestInit?: RequestInit;
+  private _authProvider?: OAuthClientProvider;
+
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
+
+  constructor(
+    url: URL,
+    opts?: SSEClientTransportOptions,
+  ) {
+    this._url = url;
+    this._eventSourceInit = opts?.eventSourceInit;
+    this._requestInit = opts?.requestInit;
+    this._authProvider = opts?.authProvider;
+  }
+
+  private async _authThenStart(): Promise<void> {
+    if (!this._authProvider) {
+      throw new UnauthorizedError("No auth provider");
+    }
+
+    let result: AuthResult;
+    try {
+      result = await auth(this._authProvider, { serverUrl: this._url });
+    } catch (error) {
+      this.onerror?.(error as Error);
+      throw error;
+    }
+
+    if (result !== "AUTHORIZED") {
+      throw new UnauthorizedError();
+    }
+
+    return await this._startOrAuth();
+  }
+
+  private async _commonHeaders(): Promise<HeadersInit> {
+    const headers: HeadersInit = {};
+    if (this._authProvider) {
+      const tokens = await this._authProvider.tokens();
+      if (tokens) {
+        headers["Authorization"] = `Bearer ${tokens.access_token}`;
+      }
+    }
+
+    return headers;
+  }
+
+  private _startOrAuth(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this._eventSource = new EventSource(
+        this._url.href,
+        this._eventSourceInit ?? {
+          fetch: (url, init) => this._commonHeaders().then((headers) => fetch(url, {
+            ...init,
+            headers: {
+              ...headers,
+              Accept: "text/event-stream"
+            }
+          })),
+        },
+      );
+      this._abortController = new AbortController();
+
+      this._eventSource.onerror = (event) => {
+        if (event.code === 401 && this._authProvider) {
+          this._authThenStart().then(resolve, reject);
+          return;
+        }
+
+        const error = new SseError(event.code, event.message, event);
+        reject(error);
+        this.onerror?.(error);
+      };
+
+      this._eventSource.onopen = () => {
+        // The connection is open, but we need to wait for the endpoint to be received.
+      };
+
+      this._eventSource.addEventListener("endpoint", (event: Event) => {
+        const messageEvent = event as MessageEvent;
+
+        try {
+          this._endpoint = new URL(messageEvent.data, this._url);
+          if (this._endpoint.origin !== this._url.origin) {
+            throw new Error(
+              `Endpoint origin does not match connection origin: ${this._endpoint.origin}`,
+            );
+          }
+        } catch (error) {
+          reject(error);
+          this.onerror?.(error as Error);
+
+          void this.close();
+          return;
+        }
+
+        resolve();
+      });
+
+      this._eventSource.onmessage = (event: Event) => {
+        const messageEvent = event as MessageEvent;
+        let message: JSONRPCMessage;
+        try {
+          message = JSONRPCMessageSchema.parse(JSON.parse(messageEvent.data));
+        } catch (error) {
+          this.onerror?.(error as Error);
+          return;
+        }
+
+        this.onmessage?.(message);
+      };
+    });
+  }
+
+  async start() {
+    if (this._eventSource) {
+      throw new Error(
+        "SSEClientTransport already started! If using Client class, note that connect() calls start() automatically.",
+      );
+    }
+
+    return await this._startOrAuth();
+  }
+
+  /**
+   * Call this method after the user has finished authorizing via their user agent and is redirected back to the MCP client application. This will exchange the authorization code for an access token, enabling the next connection attempt to successfully auth.
+   */
+  async finishAuth(authorizationCode: string): Promise<void> {
+    if (!this._authProvider) {
+      throw new UnauthorizedError("No auth provider");
+    }
+
+    const result = await auth(this._authProvider, { serverUrl: this._url, authorizationCode });
+    if (result !== "AUTHORIZED") {
+      throw new UnauthorizedError("Failed to authorize");
+    }
+  }
+
+  async close(): Promise<void> {
+    this._abortController?.abort();
+    this._eventSource?.close();
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage): Promise<void> {
+    if (!this._endpoint) {
+      throw new Error("Not connected");
+    }
+
+    try {
+      const commonHeaders = await this._commonHeaders();
+      const headers = new Headers({ ...commonHeaders, ...this._requestInit?.headers });
+      headers.set("content-type", "application/json");
+      const init = {
+        ...this._requestInit,
+        method: "POST",
+        headers,
+        body: JSON.stringify(message),
+        signal: this._abortController?.signal,
+      };
+
+      const response = await fetch(this._endpoint, init);
+      if (!response.ok) {
+        if (response.status === 401 && this._authProvider) {
+          const result = await auth(this._authProvider, { serverUrl: this._url });
+          if (result !== "AUTHORIZED") {
+            throw new UnauthorizedError();
+          }
+
+          // Purposely _not_ awaited, so we don't call onerror twice
+          return this.send(message);
+        }
+
+        const text = await response.text().catch(() => null);
+        throw new Error(
+          `Error POSTing to endpoint (HTTP ${response.status}): ${text}`,
+        );
+      }
+    } catch (error) {
+      this.onerror?.(error as Error);
+      throw error;
+    }
+  }
+}
+
+import { Transport } from "../shared/transport.js";
+import { isInitializedNotification, isJSONRPCRequest, isJSONRPCResponse, JSONRPCMessage, JSONRPCMessageSchema } from "../types.js";
+import { auth, AuthResult, OAuthClientProvider, UnauthorizedError } from "./auth.js";
+import { EventSourceParserStream } from "eventsource-parser/stream";
+
+// Default reconnection options for StreamableHTTP connections
+const DEFAULT_STREAMABLE_HTTP_RECONNECTION_OPTIONS: StreamableHTTPReconnectionOptions = {
+  initialReconnectionDelay: 1000,
+  maxReconnectionDelay: 30000,
+  reconnectionDelayGrowFactor: 1.5,
+  maxRetries: 2,
+};
+
+export class StreamableHTTPError extends Error {
+  constructor(
+    public readonly code: number | undefined,
+    message: string | undefined,
+  ) {
+    super(`Streamable HTTP error: ${message}`);
+  }
+}
+
+/**
+ * Options for starting or authenticating an SSE connection
+ */
+interface StartSSEOptions {
+  /**
+   * The resumption token used to continue long-running requests that were interrupted.
+   *
+   * This allows clients to reconnect and continue from where they left off.
+   */
+  resumptionToken?: string;
+
+  /**
+   * A callback that is invoked when the resumption token changes.
+   *
+   * This allows clients to persist the latest token for potential reconnection.
+   */
+  onresumptiontoken?: (token: string) => void;
+
+  /**
+  * Override Message ID to associate with the replay message
+  * so that response can be associate with the new resumed request.
+  */
+  replayMessageId?: string | number;
+}
+
+/**
+ * Configuration options for reconnection behavior of the StreamableHTTPClientTransport.
+ */
+export interface StreamableHTTPReconnectionOptions {
+  /**
+   * Maximum backoff time between reconnection attempts in milliseconds.
+   * Default is 30000 (30 seconds).
+   */
+  maxReconnectionDelay: number;
+
+  /**
+   * Initial backoff time between reconnection attempts in milliseconds.
+   * Default is 1000 (1 second).
+   */
+  initialReconnectionDelay: number;
+
+  /**
+   * The factor by which the reconnection delay increases after each attempt.
+   * Default is 1.5.
+   */
+  reconnectionDelayGrowFactor: number;
+
+  /**
+   * Maximum number of reconnection attempts before giving up.
+   * Default is 2.
+   */
+  maxRetries: number;
+}
+
+/**
+ * Configuration options for the `StreamableHTTPClientTransport`.
+ */
+export type StreamableHTTPClientTransportOptions = {
+  /**
+   * An OAuth client provider to use for authentication.
+   *
+   * When an `authProvider` is specified and the connection is started:
+   * 1. The connection is attempted with any existing access token from the `authProvider`.
+   * 2. If the access token has expired, the `authProvider` is used to refresh the token.
+   * 3. If token refresh fails or no access token exists, and auth is required, `OAuthClientProvider.redirectToAuthorization` is called, and an `UnauthorizedError` will be thrown from `connect`/`start`.
+   *
+   * After the user has finished authorizing via their user agent, and is redirected back to the MCP client application, call `StreamableHTTPClientTransport.finishAuth` with the authorization code before retrying the connection.
+   *
+   * If an `authProvider` is not provided, and auth is required, an `UnauthorizedError` will be thrown.
+   *
+   * `UnauthorizedError` might also be thrown when sending any message over the transport, indicating that the session has expired, and needs to be re-authed and reconnected.
+   */
+  authProvider?: OAuthClientProvider;
+
+  /**
+   * Customizes HTTP requests to the server.
+   */
+  requestInit?: RequestInit;
+
+  /**
+   * Options to configure the reconnection behavior.
+   */
+  reconnectionOptions?: StreamableHTTPReconnectionOptions;
+
+  /**
+   * Session ID for the connection. This is used to identify the session on the server.
+   * When not provided and connecting to a server that supports session IDs, the server will generate a new session ID.
+   */
+  sessionId?: string;
+};
+
+/**
+ * Client transport for Streamable HTTP: this implements the MCP Streamable HTTP transport specification.
+ * It will connect to a server using HTTP POST for sending messages and HTTP GET with Server-Sent Events
+ * for receiving messages.
+ */
+export class StreamableHTTPClientTransport implements Transport {
+  private _abortController?: AbortController;
+  private _url: URL;
+  private _requestInit?: RequestInit;
+  private _authProvider?: OAuthClientProvider;
+  private _sessionId?: string;
+  private _reconnectionOptions: StreamableHTTPReconnectionOptions;
+
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
+
+  constructor(
+    url: URL,
+    opts?: StreamableHTTPClientTransportOptions,
+  ) {
+    this._url = url;
+    this._requestInit = opts?.requestInit;
+    this._authProvider = opts?.authProvider;
+    this._sessionId = opts?.sessionId;
+    this._reconnectionOptions = opts?.reconnectionOptions ?? DEFAULT_STREAMABLE_HTTP_RECONNECTION_OPTIONS;
+  }
+
+  private async _authThenStart(): Promise<void> {
+    if (!this._authProvider) {
+      throw new UnauthorizedError("No auth provider");
+    }
+
+    let result: AuthResult;
+    try {
+      result = await auth(this._authProvider, { serverUrl: this._url });
+    } catch (error) {
+      this.onerror?.(error as Error);
+      throw error;
+    }
+
+    if (result !== "AUTHORIZED") {
+      throw new UnauthorizedError();
+    }
+
+    return await this._startOrAuthSse({ resumptionToken: undefined });
+  }
+
+  private async _commonHeaders(): Promise<Headers> {
+    const headers: HeadersInit = {};
+    if (this._authProvider) {
+      const tokens = await this._authProvider.tokens();
+      if (tokens) {
+        headers["Authorization"] = `Bearer ${tokens.access_token}`;
+      }
+    }
+
+    if (this._sessionId) {
+      headers["mcp-session-id"] = this._sessionId;
+    }
+
+    return new Headers(
+      { ...headers, ...this._requestInit?.headers }
+    );
+  }
+
+
+  private async _startOrAuthSse(options: StartSSEOptions): Promise<void> {
+    const { resumptionToken } = options;
+    try {
+      // Try to open an initial SSE stream with GET to listen for server messages
+      // This is optional according to the spec - server may not support it
+      const headers = await this._commonHeaders();
+      headers.set("Accept", "text/event-stream");
+
+      // Include Last-Event-ID header for resumable streams if provided
+      if (resumptionToken) {
+        headers.set("last-event-id", resumptionToken);
+      }
+
+      const response = await fetch(this._url, {
+        method: "GET",
+        headers,
+        signal: this._abortController?.signal,
+      });
+
+      if (!response.ok) {
+        if (response.status === 401 && this._authProvider) {
+          // Need to authenticate
+          return await this._authThenStart();
+        }
+
+        // 405 indicates that the server does not offer an SSE stream at GET endpoint
+        // This is an expected case that should not trigger an error
+        if (response.status === 405) {
+          return;
+        }
+
+        throw new StreamableHTTPError(
+          response.status,
+          `Failed to open SSE stream: ${response.statusText}`,
+        );
+      }
+
+      this._handleSseStream(response.body, options);
+    } catch (error) {
+      this.onerror?.(error as Error);
+      throw error;
+    }
+  }
+
+
+  /**
+   * Calculates the next reconnection delay using  backoff algorithm
+   * 
+   * @param attempt Current reconnection attempt count for the specific stream
+   * @returns Time to wait in milliseconds before next reconnection attempt
+   */
+  private _getNextReconnectionDelay(attempt: number): number {
+    // Access default values directly, ensuring they're never undefined
+    const initialDelay = this._reconnectionOptions.initialReconnectionDelay;
+    const growFactor = this._reconnectionOptions.reconnectionDelayGrowFactor;
+    const maxDelay = this._reconnectionOptions.maxReconnectionDelay;
+
+    // Cap at maximum delay
+    return Math.min(initialDelay * Math.pow(growFactor, attempt), maxDelay);
+
+  }
+
+  /**
+   * Schedule a reconnection attempt with exponential backoff
+   * 
+   * @param lastEventId The ID of the last received event for resumability
+   * @param attemptCount Current reconnection attempt count for this specific stream
+   */
+  private _scheduleReconnection(options: StartSSEOptions, attemptCount = 0): void {
+    // Use provided options or default options
+    const maxRetries = this._reconnectionOptions.maxRetries;
+
+    // Check if we've exceeded maximum retry attempts
+    if (maxRetries > 0 && attemptCount >= maxRetries) {
+      this.onerror?.(new Error(`Maximum reconnection attempts (${maxRetries}) exceeded.`));
+      return;
+    }
+
+    // Calculate next delay based on current attempt count
+    const delay = this._getNextReconnectionDelay(attemptCount);
+
+    // Schedule the reconnection
+    setTimeout(() => {
+      // Use the last event ID to resume where we left off
+      this._startOrAuthSse(options).catch(error => {
+        this.onerror?.(new Error(`Failed to reconnect SSE stream: ${error instanceof Error ? error.message : String(error)}`));
+        // Schedule another attempt if this one failed, incrementing the attempt counter
+        this._scheduleReconnection(options, attemptCount + 1);
+      });
+    }, delay);
+  }
+
+  private _handleSseStream(stream: ReadableStream<Uint8Array> | null, options: StartSSEOptions): void {
+    if (!stream) {
+      return;
+    }
+    const { onresumptiontoken, replayMessageId } = options;
+
+    let lastEventId: string | undefined;
+    const processStream = async () => {
+      // this is the closest we can get to trying to catch network errors
+      // if something happens reader will throw
+      try {
+        // Create a pipeline: binary stream -> text decoder -> SSE parser
+        const reader = stream
+          .pipeThrough(new TextDecoderStream())
+          .pipeThrough(new EventSourceParserStream())
+          .getReader();
+
+
+        while (true) {
+          const { value: event, done } = await reader.read();
+          if (done) {
+            break;
+          }
+
+          // Update last event ID if provided
+          if (event.id) {
+            lastEventId = event.id;
+            onresumptiontoken?.(event.id);
+          }
+
+          if (!event.event || event.event === "message") {
+            try {
+              const message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
+              if (replayMessageId !== undefined && isJSONRPCResponse(message)) {
+                message.id = replayMessageId;
+              }
+              this.onmessage?.(message);
+            } catch (error) {
+              this.onerror?.(error as Error);
+            }
+          }
+        }
+      } catch (error) {
+        // Handle stream errors - likely a network disconnect
+        this.onerror?.(new Error(`SSE stream disconnected: ${error}`));
+
+        // Attempt to reconnect if the stream disconnects unexpectedly and we aren't closing
+        if (this._abortController && !this._abortController.signal.aborted) {
+          // Use the exponential backoff reconnection strategy
+          if (lastEventId !== undefined) {
+            try {
+              this._scheduleReconnection({
+                resumptionToken: lastEventId,
+                onresumptiontoken,
+                replayMessageId
+              }, 0);
+            }
+            catch (error) {
+              this.onerror?.(new Error(`Failed to reconnect: ${error instanceof Error ? error.message : String(error)}`));
+
+            }
+          }
+        }
+      }
+    };
+    processStream();
+  }
+
+  async start() {
+    if (this._abortController) {
+      throw new Error(
+        "StreamableHTTPClientTransport already started! If using Client class, note that connect() calls start() automatically.",
+      );
+    }
+
+    this._abortController = new AbortController();
+  }
+
+  /**
+   * Call this method after the user has finished authorizing via their user agent and is redirected back to the MCP client application. This will exchange the authorization code for an access token, enabling the next connection attempt to successfully auth.
+   */
+  async finishAuth(authorizationCode: string): Promise<void> {
+    if (!this._authProvider) {
+      throw new UnauthorizedError("No auth provider");
+    }
+
+    const result = await auth(this._authProvider, { serverUrl: this._url, authorizationCode });
+    if (result !== "AUTHORIZED") {
+      throw new UnauthorizedError("Failed to authorize");
+    }
+  }
+
+  async close(): Promise<void> {
+    // Abort any pending requests
+    this._abortController?.abort();
+
+    this.onclose?.();
+  }
+
+  async send(message: JSONRPCMessage | JSONRPCMessage[], options?: { resumptionToken?: string, onresumptiontoken?: (token: string) => void }): Promise<void> {
+    try {
+      const { resumptionToken, onresumptiontoken } = options || {};
+
+      if (resumptionToken) {
+        // If we have at last event ID, we need to reconnect the SSE stream
+        this._startOrAuthSse({ resumptionToken, replayMessageId: isJSONRPCRequest(message) ? message.id : undefined }).catch(err => this.onerror?.(err));
+        return;
+      }
+
+      const headers = await this._commonHeaders();
+      headers.set("content-type", "application/json");
+      headers.set("accept", "application/json, text/event-stream");
+
+      const init = {
+        ...this._requestInit,
+        method: "POST",
+        headers,
+        body: JSON.stringify(message),
+        signal: this._abortController?.signal,
+      };
+
+      const response = await fetch(this._url, init);
+
+      // Handle session ID received during initialization
+      const sessionId = response.headers.get("mcp-session-id");
+      if (sessionId) {
+        this._sessionId = sessionId;
+      }
+
+      if (!response.ok) {
+        if (response.status === 401 && this._authProvider) {
+          const result = await auth(this._authProvider, { serverUrl: this._url });
+          if (result !== "AUTHORIZED") {
+            throw new UnauthorizedError();
+          }
+
+          // Purposely _not_ awaited, so we don't call onerror twice
+          return this.send(message);
+        }
+
+        const text = await response.text().catch(() => null);
+        throw new Error(
+          `Error POSTing to endpoint (HTTP ${response.status}): ${text}`,
+        );
+      }
+
+      // If the response is 202 Accepted, there's no body to process
+      if (response.status === 202) {
+        // if the accepted notification is initialized, we start the SSE stream
+        // if it's supported by the server
+        if (isInitializedNotification(message)) {
+          // Start without a lastEventId since this is a fresh connection
+          this._startOrAuthSse({ resumptionToken: undefined }).catch(err => this.onerror?.(err));
+        }
+        return;
+      }
+
+      // Get original message(s) for detecting request IDs
+      const messages = Array.isArray(message) ? message : [message];
+
+      const hasRequests = messages.filter(msg => "method" in msg && "id" in msg && msg.id !== undefined).length > 0;
+
+      // Check the response type
+      const contentType = response.headers.get("content-type");
+
+      if (hasRequests) {
+        if (contentType?.includes("text/event-stream")) {
+          // Handle SSE stream responses for requests
+          // We use the same handler as standalone streams, which now supports
+          // reconnection with the last event ID
+          this._handleSseStream(response.body, { onresumptiontoken });
+        } else if (contentType?.includes("application/json")) {
+          // For non-streaming servers, we might get direct JSON responses
+          const data = await response.json();
+          const responseMessages = Array.isArray(data)
+            ? data.map(msg => JSONRPCMessageSchema.parse(msg))
+            : [JSONRPCMessageSchema.parse(data)];
+
+          for (const msg of responseMessages) {
+            this.onmessage?.(msg);
+          }
+        } else {
+          throw new StreamableHTTPError(
+            -1,
+            `Unexpected content type: ${contentType}`,
+          );
+        }
+      }
+    } catch (error) {
+      this.onerror?.(error as Error);
+      throw error;
+    }
+  }
+
+  get sessionId(): string | undefined {
+    return this._sessionId;
+  }
+
+  /**
+   * Terminates the current session by sending a DELETE request to the server.
+   * 
+   * Clients that no longer need a particular session
+   * (e.g., because the user is leaving the client application) SHOULD send an
+   * HTTP DELETE to the MCP endpoint with the Mcp-Session-Id header to explicitly
+   * terminate the session.
+   * 
+   * The server MAY respond with HTTP 405 Method Not Allowed, indicating that
+   * the server does not allow clients to terminate sessions.
+   */
+  async terminateSession(): Promise<void> {
+    if (!this._sessionId) {
+      return; // No session to terminate
+    }
+
+    try {
+      const headers = await this._commonHeaders();
+
+      const init = {
+        ...this._requestInit,
+        method: "DELETE",
+        headers,
+        signal: this._abortController?.signal,
+      };
+
+      const response = await fetch(this._url, init);
+
+      // We specifically handle 405 as a valid response according to the spec,
+      // meaning the server does not support explicit session termination
+      if (!response.ok && response.status !== 405) {
+        throw new StreamableHTTPError(
+          response.status,
+          `Failed to terminate session: ${response.statusText}`
+        );
+      }
+
+      this._sessionId = undefined;
+    } catch (error) {
+      this.onerror?.(error as Error);
+      throw error;
+    }
+  }
+}
+
+import { Transport } from "../shared/transport.js";
+import { JSONRPCMessage, JSONRPCMessageSchema } from "../types.js";
+
+const SUBPROTOCOL = "mcp";
+
+/**
+ * Client transport for WebSocket: this will connect to a server over the WebSocket protocol.
+ */
+export class WebSocketClientTransport implements Transport {
+  private _socket?: WebSocket;
+  private _url: URL;
+
+  onclose?: () => void;
+  onerror?: (error: Error) => void;
+  onmessage?: (message: JSONRPCMessage) => void;
+
+  constructor(url: URL) {
+    this._url = url;
+  }
+
+  start(): Promise<void> {
+    if (this._socket) {
+      throw new Error(
+        "WebSocketClientTransport already started! If using Client class, note that connect() calls start() automatically.",
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      this._socket = new WebSocket(this._url, SUBPROTOCOL);
+
+      this._socket.onerror = (event) => {
+        const error =
+          "error" in event
+            ? (event.error as Error)
+            : new Error(`WebSocket error: ${JSON.stringify(event)}`);
+        reject(error);
+        this.onerror?.(error);
+      };
+
+      this._socket.onopen = () => {
+        resolve();
+      };
+
+      this._socket.onclose = () => {
+        this.onclose?.();
+      };
+
+      this._socket.onmessage = (event: MessageEvent) => {
+        let message: JSONRPCMessage;
+        try {
+          message = JSONRPCMessageSchema.parse(JSON.parse(event.data));
+        } catch (error) {
+          this.onerror?.(error as Error);
+          return;
+        }
+
+        this.onmessage?.(message);
+      };
+    });
+  }
+
+  async close(): Promise<void> {
+    this._socket?.close();
+  }
+
+  send(message: JSONRPCMessage): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (!this._socket) {
+        reject(new Error("Not connected"));
+        return;
+      }
+
+      this._socket?.send(JSON.stringify(message));
+      resolve();
+    });
+  }
+}
+
+
