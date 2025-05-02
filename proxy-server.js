@@ -45,10 +45,21 @@ proxy.on('error', (err, req, res) => {
 const app = express();
 
 // Health check endpoint needs to be explicitly routed to maintain API path
-app.get('/api/v1/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   logger.info(`Proxying health check request to API endpoint`);
   
   // Direct the request to the FastAPI backend health endpoint
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/health',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
+// Legacy health check (will be deprecated)
+app.get('/api/v1/health', (req, res) => {
+  logger.info(`Proxying legacy health check request to API endpoint`);
+  
   proxy.web(req, res, {
     target: 'http://localhost:3000/v1/health',
     ignorePath: true,
@@ -56,9 +67,20 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
-// API Documentation endpoints
+// API Documentation endpoints with versioning
+app.get('/api/api/v1/doc', (req, res) => {
+  logger.info(`Proxying API v1 documentation request`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/api/v1/doc',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
+// Legacy API Documentation (will be deprecated)
 app.get('/api/api/doc', (req, res) => {
-  logger.info(`Proxying API documentation request`);
+  logger.info(`Proxying legacy API documentation request`);
   
   proxy.web(req, res, {
     target: 'http://localhost:3000/api/doc',
@@ -67,9 +89,20 @@ app.get('/api/api/doc', (req, res) => {
   });
 });
 
-// API Methods endpoint
+// API Methods endpoint with versioning
+app.get('/api/api/v1/methods', (req, res) => {
+  logger.info(`Proxying API v1 methods request`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3000/api/v1/methods',
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
+// Legacy API Methods endpoint (will be deprecated)
 app.get('/api/api/methods', (req, res) => {
-  logger.info(`Proxying API methods request`);
+  logger.info(`Proxying legacy API methods request`);
   
   proxy.web(req, res, {
     target: 'http://localhost:3000/api/methods',

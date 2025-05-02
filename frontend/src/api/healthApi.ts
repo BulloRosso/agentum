@@ -33,8 +33,8 @@ interface APIMethodsResponse {
 export const fetchHealthStatus = async (): Promise<HealthResponse> => {
   try {
     console.log('Fetching health status from API...');
-    // Use the proxy endpoint that's proven to work
-    const response = await axios.get<HealthResponse>('/api/v1/health', {
+    // Use the updated health endpoint
+    const response = await axios.get<HealthResponse>('/api/health', {
       timeout: 5000, // 5 second timeout
       headers: {
         'Accept': 'application/json',
@@ -68,7 +68,7 @@ export const fetchHealthStatus = async (): Promise<HealthResponse> => {
 export const fetchApiMethods = async (): Promise<APIMethod[]> => {
   try {
     console.log('Fetching API methods...');
-    const response = await axios.get<APIMethodsResponse>('/api/api/methods', {
+    const response = await axios.get<APIMethodsResponse>('/api/api/v1/methods', {
       timeout: 5000, // 5 second timeout
       headers: {
         'Accept': 'application/json',

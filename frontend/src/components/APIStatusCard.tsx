@@ -131,7 +131,7 @@ const APIStatusCard = () => {
         
         {apiStatus && (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary">
                 API version {apiVersion} • uptime {formatUptime(apiUptime || 0)}
               </Typography>
@@ -142,8 +142,6 @@ const APIStatusCard = () => {
                 icon={apiStatus === 'operational' ? <CheckCircleIcon /> : <ErrorIcon />}
               />
             </Box>
-            
-            <Divider sx={{ my: 2 }} />
             
             {/* API Methods Section */}
             <Box sx={{ mb: 2 }}>
