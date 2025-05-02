@@ -162,6 +162,8 @@ async def get_workflows():
     
     This endpoint interacts with the n8n API to retrieve all workflows.
     Requires N8N_URL and N8N_API_KEY environment variables to be set.
+    
+    The workflow data is also stored in object storage as workflows.json for later retrieval.
     """
     logger.info("Workflows requested")
     
@@ -179,6 +181,29 @@ async def get_workflows():
             detail="Unable to fetch workflows from n8n API. Check server logs for details."
         )
     
+    # Store workflows in storage as JSON using StorageTextFile
+    try:
+        from services.storage import StorageTextFile
+        storage = StorageTextFile()
+        
+        # Convert workflows to JSON-serializable format
+        # Note: workflows is a WorkflowList object, we need to use its dict() method or model_dump()
+        # for Pydantic v2 to get the dictionary representation
+        workflows_dict = workflows.model_dump() if hasattr(workflows, 'model_dump') else workflows.dict()
+        
+        # Save to storage
+        logger.info("Storing workflows to workflows.json")
+        storage_result = storage.create_json("workflows.json", workflows_dict)
+        
+        if storage_result:
+            logger.info("Successfully stored workflows to workflows.json")
+        else:
+            logger.warning("Failed to store workflows to workflows.json")
+            
+    except Exception as e:
+        # Log the error but don't fail the API request if storage fails
+        logger.error(f"Error while storing workflows to storage: {str(e)}")
+    
     return workflows
 
 # Backward compatibility for old workflows URL
@@ -189,6 +214,52 @@ async def get_workflows_legacy():
     """
     logger.info("Legacy workflows requested")
     return await get_workflows()
+
+# Endpoint to get workflows from storage without calling the n8n API
+@app.get("/api/v1/workflows/cached", response_model=WorkflowList, tags=["Workflows"])
+async def get_cached_workflows():
+    """
+    Retrieves workflows from storage without calling the n8n API.
+    
+    This endpoint reads the workflows.json file from object storage, which is 
+    created when the /api/v1/workflows endpoint is called. If the file does not
+    exist, it will return an empty workflow list.
+    """
+    logger.info("Cached workflows requested")
+    
+    try:
+        from services.storage import StorageTextFile
+        from models.workflow import WorkflowList
+        
+        storage = StorageTextFile()
+        
+        # Load workflows from storage
+        workflows_json = storage.get_json("workflows.json")
+        
+        if workflows_json is None:
+            logger.warning("No cached workflows found in storage")
+            # Create an empty workflow list with the correct structure
+            empty_workflows = {"workflows": []}
+            return WorkflowList(**empty_workflows)
+        
+        # Convert to WorkflowList object
+        # Check the structure to ensure it's correct
+        if not isinstance(workflows_json, dict) or "workflows" not in workflows_json:
+            logger.warning("Invalid structure in cached workflows.json, creating empty workflow list")
+            empty_workflows = {"workflows": []}
+            return WorkflowList(**empty_workflows)
+            
+        cached_workflows = WorkflowList.parse_obj(workflows_json) if hasattr(WorkflowList, 'parse_obj') else WorkflowList(**workflows_json)
+        
+        logger.info(f"Successfully retrieved {len(cached_workflows.workflows)} cached workflows from storage")
+        return cached_workflows
+        
+    except Exception as e:
+        logger.error(f"Error retrieving cached workflows: {str(e)}")
+        # Instead of raising an exception, return an empty workflow list
+        logger.info("Returning empty workflow list due to error")
+        empty_workflows = {"workflows": []}
+        return WorkflowList(**empty_workflows)
 
 # Storage test endpoint to verify that the storage service is working
 @app.get("/api/v1/storage/test", response_class=JSONResponse)
