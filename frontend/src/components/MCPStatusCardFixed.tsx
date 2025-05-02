@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -11,6 +11,7 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
+  ListItemSecondaryAction,
   Collapse,
   Button
 } from '@mui/material';
@@ -22,11 +23,12 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ErrorIcon from '@mui/icons-material/Error';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useMCPStore } from '../store/mcpStore';
-import { useSseConnection, connectToSSE, disconnectFromSSE } from '../api/mcpSseApi';
+import { useSseConnection, connectToSSE } from '../api/mcpSseApi';
+import MCPTestModal, { TestType } from './MCPTestModal';
 
 const MCPStatusCard: React.FC = () => {
   const { status, tools, resources, prompts, isLoading, error, fetchAll } = useMCPStore();
-  const { isConnected, lastPing } = useSseConnection();
+  const { isConnected } = useSseConnection();
   
   // Local state for expand/collapse sections
   const [expandedSections, setExpandedSections] = React.useState({
@@ -34,6 +36,13 @@ const MCPStatusCard: React.FC = () => {
     resources: false,
     prompts: false
   });
+  
+  // State for test modal
+  const [testModalOpen, setTestModalOpen] = useState(false);
+  const [testType, setTestType] = useState<TestType>(TestType.TOOL);
+  const [selectedTool, setSelectedTool] = useState<typeof tools[0] | undefined>(undefined);
+  const [selectedResource, setSelectedResource] = useState<typeof resources[0] | undefined>(undefined);
+  const [selectedPrompt, setSelectedPrompt] = useState<typeof prompts[0] | undefined>(undefined);
   
   React.useEffect(() => {
     // Fetch data on component mount
@@ -121,7 +130,24 @@ const MCPStatusCard: React.FC = () => {
                 {tools.length > 0 ? (
                   <List dense>
                     {tools.map(tool => (
-                      <ListItem key={tool.name}>
+                      <ListItem 
+                        key={tool.name}
+                        secondaryAction={
+                          <Button 
+                            size="small" 
+                            variant="outlined" 
+                            color="primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedTool(tool);
+                              setTestType(TestType.TOOL);
+                              setTestModalOpen(true);
+                            }}
+                          >
+                            Test
+                          </Button>
+                        }
+                      >
                         <ListItemIcon sx={{ minWidth: 36 }}>
                           <BuildIcon fontSize="small" />
                         </ListItemIcon>
@@ -166,7 +192,24 @@ const MCPStatusCard: React.FC = () => {
                 {resources.length > 0 ? (
                   <List dense>
                     {resources.map(resource => (
-                      <ListItem key={resource.name}>
+                      <ListItem 
+                        key={resource.name}
+                        secondaryAction={
+                          <Button 
+                            size="small" 
+                            variant="outlined" 
+                            color="primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedResource(resource);
+                              setTestType(TestType.RESOURCE);
+                              setTestModalOpen(true);
+                            }}
+                          >
+                            Test
+                          </Button>
+                        }
+                      >
                         <ListItemIcon sx={{ minWidth: 36 }}>
                           <DescriptionIcon fontSize="small" />
                         </ListItemIcon>
