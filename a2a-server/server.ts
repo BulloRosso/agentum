@@ -41,7 +41,10 @@ export class A2AServer {
   private basePath: string;
   // Track active cancellations
   private activeCancellations: Set<string> = new Set();
-  card: schema.AgentCard;
+  card: schema.AgentCard = {
+    name: "Default Agent",
+    description: "Default agent description"
+  };
 
   // Helper to apply updates (status or artifact) immutably
   private applyUpdateToTaskAndHistory(
@@ -154,7 +157,7 @@ export class A2AServer {
     app.use(express.json()); // Parse JSON bodies
 
     // Well-known endpoint to get the agent card
-    app.get("/.well-known/agent.json", (req, res) => {
+    app.get("/.well-known/agent.json", (req: Request, res: Response) => {
       if (!this.card) {
         return res.status(404).json({
           error: "Agent card not configured"
@@ -414,6 +417,7 @@ export class A2AServer {
           // Apply 'completed' state update
           currentData = this.applyUpdateToTaskAndHistory(currentData, {
             state: "completed",
+            message: null
           });
           // Save the forced final state
           await this.taskStore.save(currentData);
@@ -602,6 +606,7 @@ export class A2AServer {
         // If it was waiting for input, update state to 'working'
         const workingUpdate: Omit<schema.TaskStatus, "timestamp"> = {
           state: "working",
+          message: null
         };
         data = this.applyUpdateToTaskAndHistory(data, workingUpdate);
         // needsSave is already true

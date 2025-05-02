@@ -56,6 +56,25 @@ app.get('/api/v1/health', (req, res) => {
   });
 });
 
+// A2A Server endpoints (.well-known and /tasks)
+app.get('/.well-known/*', (req, res) => {
+  logger.info(`Proxying A2A well-known request to A2A server: ${req.path}`);
+  
+  proxy.web(req, res, {
+    target: `http://localhost:3200${req.path}`,
+    changeOrigin: true
+  });
+});
+
+app.post('/tasks', (req, res) => {
+  logger.info(`Proxying A2A tasks request to A2A server`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3200/tasks',
+    changeOrigin: true
+  });
+});
+
 // Generic API endpoint proxy for all other API routes
 app.use('/api', (req, res) => {
   if (req.path === '/v1/health') {
@@ -76,8 +95,10 @@ app.use('/api', (req, res) => {
 
 // Frontend proxy for development
 app.use('/', (req, res) => {
-  // Skip if it's an API request
-  if (req.url.startsWith('/api/')) {
+  // Skip if it's an API request or an A2A request
+  if (req.url.startsWith('/api/') || 
+      req.url.startsWith('/.well-known/') || 
+      req.url === '/tasks') {
     return;
   }
   
@@ -102,6 +123,12 @@ server.on('upgrade', (req, socket, head) => {
       target: 'http://localhost:3000',
       changeOrigin: true
     });
+  } else if (req.url.startsWith('/.well-known/') || req.url === '/tasks') {
+    // WebSocket connections to A2A server
+    proxy.ws(req, socket, head, {
+      target: 'http://localhost:3200',
+      changeOrigin: true
+    });
   } else {
     // WebSocket connections to frontend (Vite HMR)
     proxy.ws(req, socket, head, {
@@ -117,5 +144,6 @@ server.listen(PORT, '0.0.0.0', () => {
   logger.info(`Proxy server running at http://0.0.0.0:${PORT}`);
   logger.info('Proxying API requests to http://localhost:3000');
   logger.info('Proxying Frontend requests to http://localhost:5173');
+  logger.info('Proxying A2A requests to http://localhost:3200');
   logger.info('WebSocket proxying enabled for HMR and real-time updates');
 });
