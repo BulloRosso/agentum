@@ -10,7 +10,7 @@ The system consists of several decoupled components that work together:
 2. **Backend API**: Python/FastAPI service providing API endpoints
 3. **Proxy Server**: Node.js proxy that routes requests to the appropriate services
 4. **A2A Server**: Agent-to-Agent server implementation following the A2A specification
-5. **MCP Server**: Media Control Protocol server providing tools, resources, and prompts
+5. **MCP Server**: Anthropic Model Context Protocol server providing tools, resources, and prompts
 
 ![Architecture Diagram](./docs/architecture-diagram.svg)
 
@@ -50,7 +50,7 @@ The system consists of several decoupled components that work together:
 
 ### MCP Server (Python)
 
-- Python/FastAPI implementation of the Media Control Protocol
+- Python/FastAPI implementation of the Anthropic Model Context Protocol
 - Provides tools, resources, and prompts for agents
 - Supports Server-Sent Events (SSE) for real-time updates
 - Dual path structure (`/endpoint` and `/sse/endpoint`)
@@ -69,7 +69,7 @@ See the [A2A server documentation](./a2a-server/README.md) for more details on i
 
 ### MCP Server Integration
 
-The MCP (Media Control Protocol) server is integrated with the main application via the proxy server. Requests to the following endpoints are routed to the MCP server:
+The MCP (Anthropic Model Context Protocol) server is integrated with the main application via the proxy server. Requests to the following endpoints are routed to the MCP server:
 
 - `/sse/*`: All SSE endpoints (status, tools, resources, prompts)
 - `/sse`: The SSE event stream endpoint

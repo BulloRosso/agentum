@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Media Control Protocol (MCP) Client is a TypeScript implementation that provides a client-side interface for interacting with the MCP Server. It allows frontend applications to access tools, resources, and prompts from the MCP Server.
+The Anthropic Model Context Protocol (MCP) Client is a TypeScript implementation that provides a client-side interface for interacting with the MCP Server. It allows frontend applications to access tools, resources, and prompts from the MCP Server.
 
 ## Key Components
 
