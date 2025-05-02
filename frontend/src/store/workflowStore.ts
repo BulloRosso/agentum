@@ -36,38 +36,15 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
     try {
       set({ isLoading: true, error: null });
       
-      console.log('Fetching workflows...');
-      try {
-        // First try to get cached workflows from the proper API endpoint
-        const response = await axios.get<WorkflowsResponse>('/api/v1/workflows/cached');
-        
-        if (response.status === 200 && response.data && response.data.data) {
-          // Sort workflows alphabetically by name
-          const sortedWorkflows = response.data.data.sort((a, b) => 
-            a.name.localeCompare(b.name)
-          );
-          
-          set({ 
-            workflows: sortedWorkflows,
-            isLoading: false 
-          });
-          
-          console.log(`Successfully fetched ${sortedWorkflows.length} workflows from cache`);
-          return;
-        }
-      } catch (apiError) {
-        console.error('Error fetching workflows from cached API:', apiError);
-      }
+      console.log('Fetching workflows from n8n API...');
+      // Always get fresh data from the n8n API endpoint
+      const response = await axios.get<WorkflowsResponse>('/api/v1/workflows');
       
-      // If the first attempt fails, try the main workflows endpoint
-      try {
-        // Call the regular workflows endpoint which will create the cache if it doesn't exist
-        const response = await axios.get<WorkflowsResponse>('/api/v1/workflows');
-        
+      if (response.status === 200 && response.data && response.data.data) {
         // Sort workflows alphabetically by name
-        const sortedWorkflows = response.data.data ? response.data.data.sort((a, b) => 
+        const sortedWorkflows = response.data.data.sort((a, b) => 
           a.name.localeCompare(b.name)
-        ) : [];
+        );
         
         set({ 
           workflows: sortedWorkflows,
@@ -75,18 +52,19 @@ export const useWorkflowStore = create<WorkflowStore>((set) => ({
         });
         
         console.log(`Successfully fetched ${sortedWorkflows.length} workflows from n8n API`);
-      } catch (fallbackError) {
-        console.error('Fallback error fetching workflows:', fallbackError);
+      } else {
         set({
-          error: "Failed to fetch workflows. Please try again later.",
-          isLoading: false
+          workflows: [],
+          isLoading: false,
+          error: "No workflows returned from API"
         });
       }
     } catch (error) {
       console.error('Error in workflow fetch process:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Unknown error occurred while fetching workflows',
-        isLoading: false 
+        isLoading: false,
+        workflows: [] // Clear workflows on error
       });
     }
   },
