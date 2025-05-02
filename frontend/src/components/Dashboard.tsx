@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { Box, Grid, Alert, CircularProgress, Typography } from '@mui/material';
+import { Box, Grid, Alert, CircularProgress } from '@mui/material';
 import StatusCard from './StatusCard';
 import A2AStatusCard from './A2AStatusCard';
 import { useApiStore } from '../store/apiStore';

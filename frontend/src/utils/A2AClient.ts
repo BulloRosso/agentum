@@ -2,7 +2,6 @@
 import {
   // Core types
   AgentCard,
-  AgentCapabilities, // Needed for supports() method check
   JSONRPCRequest,
   JSONRPCResponse,
   JSONRPCError,
