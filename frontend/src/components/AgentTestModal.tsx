@@ -12,7 +12,6 @@ import {
   Paper
 } from '@mui/material';
 import { AgentCard, testAgent } from '../api/a2aApi';
-import { MessagePart, MessageTextPart } from '../utils/A2ASchema';
 
 interface AgentTestModalProps {
   open: boolean;
@@ -42,23 +41,26 @@ const AgentTestModal: React.FC<AgentTestModalProps> = ({ open, onClose, agent })
       
       // Extract the message from the agent's response
       if (task && task.status) {
-        if (task.status.state === 'completed') {
-          // If the task completed, show the response message
+        // Check the state of the task using an equality check
+        const state = task.status.state as string;
+        
+        if (state === 'completed' || state === 'succeeded') {
+          // If the task succeeded, show the response message
           if (task.status.message && task.status.message.parts) {
             const responseText = task.status.message.parts
-              .map(part => (part as MessageTextPart).text || '')
+              .map(part => (part as any).text || '')
               .join('\n');
             
             setResponse(responseText || 'No text response received');
           } else {
             setResponse('No response message received');
           }
-        } else if (task.status.state === 'failed') {
+        } else if (state === 'failed') {
           // If the task failed, show the error
-          setError(`Task failed: ${task.status.error || 'Unknown error'}`);
+          setError(`Task failed: ${task.status.error?.message || 'Unknown error'}`);
         } else {
           // If the task is still in progress or in an unknown state
-          setError(`Task did not complete. Current state: ${task.status.state}`);
+          setError(`Task did not complete. Current state: ${state}`);
         }
       } else {
         setError('Invalid response from agent');
