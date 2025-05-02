@@ -156,6 +156,8 @@ async def get_api_methods_legacy():
 
 # Workflows endpoint to fetch n8n workflows
 @app.get("/api/v1/workflows", response_model=WorkflowList, tags=["Workflows"])
+@app.get("/v1/workflows", response_model=WorkflowList, tags=["Workflows"])
+@app.get("/workflows", response_model=WorkflowList, tags=["Workflows"])
 async def get_workflows():
     """
     Fetches a list of workflows from the n8n API.
@@ -222,6 +224,8 @@ async def get_workflows_legacy():
 
 # Endpoint to get workflows from storage without calling the n8n API
 @app.get("/api/v1/workflows/cached", response_model=WorkflowList, tags=["Workflows"])
+@app.get("/v1/workflows/cached", response_model=WorkflowList, tags=["Workflows"])
+@app.get("/workflows/cached", response_model=WorkflowList, tags=["Workflows"])
 async def get_cached_workflows():
     """
     Retrieves workflows from storage without calling the n8n API.
