@@ -73,7 +73,7 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd mcp-server && node simple-server.js"
+args = "cd mcp-server && pip install -r requirements.txt && python mcp_server.py"
 waitForPort = 3400
 
 [deployment]
