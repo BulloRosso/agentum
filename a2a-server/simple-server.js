@@ -108,7 +108,7 @@ async function handleTaskSend(request, res) {
   
   // Update the task
   task.status = {
-    state: 'completed',
+    state: 'completed', // Using 'completed' to match our frontend expectations
     timestamp: new Date().toISOString(),
     message: {
       role: 'agent',
