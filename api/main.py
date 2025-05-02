@@ -190,6 +190,59 @@ async def get_workflows_legacy():
     logger.info("Legacy workflows requested")
     return await get_workflows()
 
+# Storage test endpoint to verify that the storage service is working
+@app.get("/api/v1/storage/test", response_class=JSONResponse)
+async def test_storage():
+    """
+    Test endpoint for storage service functionality
+    
+    Creates a test text file, lists all files, and returns their information.
+    Useful to verify that the storage service is working properly.
+    """
+    from services.storage import StorageTextFile
+    
+    logger.info("Storage test requested")
+    
+    try:
+        # Initialize storage service
+        storage = StorageTextFile()
+        
+        # Create a test file
+        test_file_path = "test.json"
+        test_data = {
+            "success": True,
+            "message": "Storage service is working correctly",
+            "timestamp": time.time()
+        }
+        
+        # Save the test file
+        success = storage.create_json(test_file_path, test_data)
+        
+        if not success:
+            return {
+                "success": False, 
+                "message": "Failed to create test file",
+                "files": []
+            }
+        
+        # List all files
+        all_files = storage.list_files()
+        
+        return {
+            "success": True,
+            "message": "Storage service test completed successfully",
+            "files": all_files,
+            "test_file_created": test_file_path
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in storage test: {str(e)}")
+        return {
+            "success": False,
+            "message": f"Storage test failed: {str(e)}",
+            "files": []
+        }
+
 if __name__ == "__main__":
     uvicorn.run(
         "main:app", 
