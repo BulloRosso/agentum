@@ -11,7 +11,6 @@ import {
   ListItem,
   ListItemText,
   ListItemIcon,
-  ListItemSecondaryAction,
   Collapse,
   Button
 } from '@mui/material';
@@ -71,8 +70,23 @@ const MCPStatusCard: React.FC = () => {
     }));
   };
   
+  // Handle modal close
+  const handleCloseModal = () => {
+    setTestModalOpen(false);
+  };
+
   return (
     <Card sx={{ mb: 3 }}>
+      {/* Test Modal */}
+      <MCPTestModal
+        open={testModalOpen}
+        onClose={handleCloseModal}
+        testType={testType}
+        tool={selectedTool}
+        resource={selectedResource}
+        prompt={selectedPrompt}
+      />
+      
       <CardContent>
         <Typography variant="h6" component="div" gutterBottom>
           MCP Server Status
@@ -254,7 +268,24 @@ const MCPStatusCard: React.FC = () => {
                 {prompts.length > 0 ? (
                   <List dense>
                     {prompts.map(prompt => (
-                      <ListItem key={prompt.name}>
+                      <ListItem 
+                        key={prompt.name}
+                        secondaryAction={
+                          <Button 
+                            size="small" 
+                            variant="outlined" 
+                            color="primary"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPrompt(prompt);
+                              setTestType(TestType.PROMPT);
+                              setTestModalOpen(true);
+                            }}
+                          >
+                            Test
+                          </Button>
+                        }
+                      >
                         <ListItemIcon sx={{ minWidth: 36 }}>
                           <ChatIcon fontSize="small" />
                         </ListItemIcon>

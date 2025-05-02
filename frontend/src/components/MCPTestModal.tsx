@@ -84,17 +84,8 @@ const MCPTestModal: React.FC<MCPTestModalProps> = ({
     return true;
   };
 
-  const downloadContent = (content: string, filename: string, contentType: string) => {
-    const blob = new Blob([content], { type: contentType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  // This function used to download content as a file
+  // Now using downloadBlob instead
 
   const downloadBlob = (blob: Blob, filename: string) => {
     const url = URL.createObjectURL(blob);
