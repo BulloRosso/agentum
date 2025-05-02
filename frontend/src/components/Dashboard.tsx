@@ -15,22 +15,22 @@ const Dashboard: React.FC = () => {
     error 
   } = useApiStore();
   
-  const { fetchAgents } = useA2AStore();
+  const { fetchStatus } = useA2AStore();
 
   useEffect(() => {
     // Initial fetch
     fetchApiHealth();
-    fetchAgents();
+    fetchStatus();
     
     // Set up polling interval (every 30 seconds)
     const intervalId = setInterval(() => {
       fetchApiHealth();
-      fetchAgents();
+      fetchStatus();
     }, 30000);
     
     // Cleanup interval on component unmount
     return () => clearInterval(intervalId);
-  }, [fetchApiHealth, fetchAgents]);
+  }, [fetchApiHealth, fetchStatus]);
 
   const formatUptime = (seconds: number): string => {
     if (!seconds) return 'Unknown';
