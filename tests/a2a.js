@@ -5,8 +5,8 @@ const axios = require('axios');
 
 console.log('Starting A2A server integration test...');
 
-// Define the URL for A2A server
-const BASE_URL = 'http://localhost';
+// Define the URL for direct A2A server access
+const BASE_URL = 'http://localhost:3200';
 
 // Log the steps for better debugging
 console.log(`Step 1: Testing /.well-known/agent.json endpoint at ${BASE_URL}/.well-known/agent.json`);
@@ -39,15 +39,15 @@ async function testWellKnownEndpoint() {
           console.log('FOUND: Agent version:', response.data.version);
         }
         
-        console.log('✅ A2A server integration test PASSED');
-        process.exit(0);
+        console.log('✅ A2A server well-known endpoint test PASSED');
+        return true;
       } else {
         console.error(`FAILED: Missing required properties in agent card: ${missingProps.join(', ')}`);
-        process.exit(1);
+        return false;
       }
     } else {
       console.error(`FAILED: Unexpected response status: ${response.status}`);
-      process.exit(1);
+      return false;
     }
   } catch (error) {
     console.error('ERROR during A2A server test:');
@@ -65,9 +65,85 @@ async function testWellKnownEndpoint() {
       console.error(`  Error message: ${error.message}`);
     }
     
-    process.exit(1);
+    return false;
   }
 }
 
-// Run the test
-testWellKnownEndpoint();
+// Test for the /tasks endpoint
+async function testTasksEndpoint() {
+  console.log(`\nStep 2: Testing /tasks endpoint at ${BASE_URL}/tasks`);
+  
+  try {
+    // Create a JSON-RPC request for tasks/send
+    const taskRequest = {
+      jsonrpc: "2.0",
+      id: "test-" + Date.now(),
+      method: "tasks/send",
+      params: {
+        id: "task-" + Date.now(),
+        message: {
+          role: "user",
+          parts: [
+            { text: "Hello from the integration test!" }
+          ]
+        }
+      }
+    };
+    
+    // Send the request to the /tasks endpoint
+    const response = await axios.post(`${BASE_URL}/tasks`, taskRequest);
+    
+    // Check the response
+    if (response.status === 200 && response.data.result) {
+      console.log('SUCCESS: /tasks endpoint processed the request');
+      console.log('Task ID:', response.data.result.id);
+      console.log('Task Status:', response.data.result.status.state);
+      
+      if (response.data.result.status.message && 
+          response.data.result.status.message.role === 'agent') {
+        console.log('RECEIVED: Agent response message');
+        console.log('Message:', response.data.result.status.message.parts[0].text);
+      }
+      
+      if (response.data.result.artifacts && response.data.result.artifacts.length > 0) {
+        console.log('FOUND:', response.data.result.artifacts.length, 'artifacts');
+      }
+      
+      console.log('✅ Tasks endpoint test PASSED');
+      return true;
+    } else {
+      console.error('FAILED: Unexpected response from /tasks endpoint');
+      console.error('Response:', response.data);
+      return false;
+    }
+  } catch (error) {
+    console.error('ERROR during tasks endpoint test:');
+    
+    if (error.response) {
+      console.error(`  Status: ${error.response.status}`);
+      console.error(`  Response data:`, error.response.data);
+    } else if (error.request) {
+      console.error('  No response received from server');
+    } else {
+      console.error(`  Error message: ${error.message}`);
+    }
+    
+    return false;
+  }
+}
+
+// Run the tests sequentially
+async function runTests() {
+  // First test the well-known endpoint
+  const wellKnownResult = await testWellKnownEndpoint();
+  
+  if (wellKnownResult !== false) {
+    // If the first test passed or was inconclusive, try the tasks endpoint
+    const tasksResult = await testTasksEndpoint();
+    
+    // Exit with success if both tests passed, failure otherwise
+    process.exit(tasksResult ? 0 : 1);
+  }
+}
+
+runTests();
