@@ -9,7 +9,7 @@ The system consists of several decoupled components that work together:
 1. **Frontend**: React/TypeScript application with Material-UI, built using Vite
 2. **Backend API**: Python/FastAPI service providing API endpoints
 3. **Proxy Server**: Node.js proxy that routes requests to the appropriate services
-4. **A2A Server**: Agent-to-Agent server implementation following the A2A specification
+4. **A2A Server**: Agent-to-Agent server implementation following the Google A2A protocol
 5. **MCP Server**: Anthropic Model Context Protocol server providing tools, resources, and prompts
 
 ![Architecture Diagram](./docs/architecture-diagram.svg)
@@ -43,7 +43,7 @@ The system consists of several decoupled components that work together:
 
 ### A2A Server
 
-- Implementation of the [A2A specification](https://github.com/ai-agents/a2a)
+- Implementation of the [Google A2A protocol](https://github.com/ai-agents/a2a)
 - Enables agent-to-agent communication
 - Provides task management and messaging capabilities
 - Supports both direct requests and streaming updates
