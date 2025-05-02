@@ -44,7 +44,7 @@ class HealthResponse(BaseModel):
     uptime: float = Field(..., description="Service uptime in seconds")
     version: str = Field(..., description="API version")
 
-@app.get("/v1/health", response_model=HealthResponse)
+@app.get("/health", response_model=HealthResponse)
 async def health_check():
     """
     Health check endpoint returns the status of the API service
@@ -56,6 +56,15 @@ async def health_check():
         "version": "1.0.0",
     }
 
+# Add backward compatibility route for a transitional period
+@app.get("/v1/health", response_model=HealthResponse, include_in_schema=False)
+async def health_check_legacy():
+    """
+    Legacy health check endpoint (will be deprecated)
+    """
+    logger.info("Legacy health check requested")
+    return await health_check()
+
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     """Middleware to log all requests"""
@@ -66,7 +75,7 @@ async def log_requests(request: Request, call_next):
     return response
 
 # Custom Redoc documentation endpoint
-@app.get("/api/doc", include_in_schema=False)
+@app.get("/api/v1/doc", include_in_schema=False)
 async def get_documentation():
     """
     Custom Redoc documentation endpoint
@@ -78,8 +87,17 @@ async def get_documentation():
         redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
     )
 
+# Backward compatibility for old doc URL
+@app.get("/api/doc", include_in_schema=False)
+async def get_documentation_legacy():
+    """
+    Legacy documentation endpoint (will be deprecated)
+    """
+    logger.info("Legacy API documentation requested")
+    return await get_documentation()
+
 # OpenAPI schema endpoint that will return a list of available API methods
-@app.get("/api/methods", response_class=JSONResponse)
+@app.get("/api/v1/methods", response_class=JSONResponse)
 async def get_api_methods():
     """
     Returns a list of all available API methods with their paths, descriptions and HTTP methods
@@ -121,6 +139,15 @@ async def get_api_methods():
             methods.append(method_info)
     
     return {"methods": methods}
+
+# Backward compatibility for old methods URL
+@app.get("/api/methods", response_class=JSONResponse, include_in_schema=False)
+async def get_api_methods_legacy():
+    """
+    Legacy methods endpoint (will be deprecated)
+    """
+    logger.info("Legacy API methods requested")
+    return await get_api_methods()
 
 if __name__ == "__main__":
     uvicorn.run(
