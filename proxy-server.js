@@ -66,6 +66,16 @@ app.get('/.well-known/*', (req, res) => {
   });
 });
 
+// MCP Server endpoints (/sse)
+app.all('/sse*', (req, res) => {
+  logger.info(`Proxying SSE request to MCP server: ${req.path}`);
+  
+  proxy.web(req, res, {
+    target: 'http://localhost:3400',
+    changeOrigin: true
+  });
+});
+
 app.post('/tasks', (req, res) => {
   logger.info(`Proxying A2A tasks request to A2A server`);
   
@@ -156,5 +166,6 @@ server.listen(PORT, '0.0.0.0', () => {
   logger.info('Proxying API requests to http://localhost:3000');
   logger.info('Proxying Frontend requests to http://localhost:5173');
   logger.info('Proxying A2A requests to http://localhost:3200');
+  logger.info('Proxying MCP/SSE requests to http://localhost:3400');
   logger.info('WebSocket proxying enabled for HMR and real-time updates');
 });
