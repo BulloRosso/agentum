@@ -166,10 +166,18 @@ export class MCPClient {
    * Get a prompt with arguments
    * @param promptName Name of the prompt to get
    * @param arguments Arguments for the prompt
+   * @param responseType Optional response type (defaults to 'json')
    */
-  async getPrompt(promptName: string, args: MCPPromptArguments): Promise<MCPPromptResult> {
+  async getPrompt(
+    promptName: string, 
+    args: MCPPromptArguments, 
+    responseType: 'json' | 'text' = 'json'
+  ): Promise<MCPPromptResult | string> {
     try {
-      const response = await axios.post(`${this.baseUrl}/prompts/${promptName}`, args);
+      const response = await axios.post(`${this.baseUrl}/prompts/${promptName}`, args, {
+        responseType: responseType === 'text' ? 'text' : 'json',
+        transformResponse: responseType === 'text' ? [(data) => data] : undefined
+      });
       return response.data;
     } catch (error) {
       console.error(`Error getting MCP prompt ${promptName}:`, error);
