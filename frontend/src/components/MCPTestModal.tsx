@@ -125,7 +125,9 @@ const MCPTestModal: React.FC<MCPTestModalProps> = ({
             args[arg.name] = formValues[arg.name];
           }
         }
-        const promptResult = await mcpClient.getPrompt(prompt.name, args);
+        // Get the prompt result as raw text instead of parsing as JSON
+        // This preserves the exact format returned by the MCP server
+        const promptResult = await mcpClient.getPrompt(prompt.name, args, 'text');
         setResult(promptResult);
       }
     } catch (err) {
@@ -252,25 +254,46 @@ const MCPTestModal: React.FC<MCPTestModalProps> = ({
         </Box>
       );
     } else if (testType === TestType.PROMPT) {
+      // Import dynamic component to avoid issues with SSR
+      const MonacoEditor = React.lazy(() => import('react-monaco-editor'));
+      
       return (
         <Box>
-          <Typography variant="h6">Prompt Result:</Typography>
-          <List>
-            {(result as MCPPromptResult).map((message, index) => (
-              <ListItem key={index} alignItems="flex-start">
-                <Paper elevation={1} sx={{ p: 2, width: '100%' }}>
-                  <ListItemText
-                    primary={`${message.role.charAt(0).toUpperCase() + message.role.slice(1)}:`}
-                    secondary={
-                      <Typography whiteSpace="pre-wrap">
-                        {message.content.text}
-                      </Typography>
-                    }
-                  />
-                </Paper>
-              </ListItem>
-            ))}
-          </List>
+          <Typography variant="h6">Prompt Result (Raw Response):</Typography>
+          <Paper 
+            elevation={1} 
+            sx={{ 
+              p: 1, 
+              my: 1, 
+              maxHeight: '400px', 
+              minHeight: '300px',
+              width: '100%', 
+              overflow: 'auto',
+              bgcolor: '#1e1e1e' // Dark background for the editor
+            }}
+          >
+            <React.Suspense fallback={<Box p={2}>Loading editor...</Box>}>
+              <MonacoEditor
+                width="100%"
+                height="300"
+                language="json"
+                theme="vs-dark"
+                value={typeof result === 'string' ? result : JSON.stringify(result, null, 2)}
+                options={{
+                  readOnly: true,
+                  minimap: { enabled: false },
+                  scrollBeyondLastLine: false,
+                  folding: true,
+                  lineNumbers: 'on',
+                  renderLineHighlight: 'all',
+                  scrollbar: {
+                    vertical: 'auto',
+                    horizontal: 'auto'
+                  }
+                }}
+              />
+            </React.Suspense>
+          </Paper>
         </Box>
       );
     }

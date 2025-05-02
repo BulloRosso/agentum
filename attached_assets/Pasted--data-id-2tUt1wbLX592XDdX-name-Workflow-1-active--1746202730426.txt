@@ -1,0 +1,75 @@
+{
+  "data": [
+    {
+      "id": "2tUt1wbLX592XDdX",
+      "name": "Workflow 1",
+      "active": true,
+      "createdAt": "2025-05-02T16:18:16.002Z",
+      "updatedAt": "2025-05-02T16:18:16.002Z",
+      "nodes": [
+        {
+          "id": "0f5532f9-36ba-4bef-86c7-30d607400b15",
+          "name": "Jira",
+          "webhookId": "string",
+          "disabled": true,
+          "notesInFlow": true,
+          "notes": "string",
+          "type": "n8n-nodes-base.Jira",
+          "typeVersion": 1,
+          "executeOnce": false,
+          "alwaysOutputData": false,
+          "retryOnFail": false,
+          "maxTries": 0,
+          "waitBetweenTries": 0,
+          "onError": "stopWorkflow",
+          "position": [
+            -100,
+            80
+          ],
+          "parameters": {
+            "additionalProperties": {}
+          },
+          "credentials": {
+            "jiraSoftwareCloudApi": {
+              "id": "35",
+              "name": "jiraApi"
+            }
+          },
+          "createdAt": "2025-05-02T16:18:16.002Z",
+          "updatedAt": "2025-05-02T16:18:16.002Z"
+        }
+      ],
+      "connections": {
+        "main": [
+          {
+            "node": "Jira",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      },
+      "settings": {
+        "saveExecutionProgress": true,
+        "saveManualExecutions": true,
+        "saveDataErrorExecution": "all",
+        "saveDataSuccessExecution": "all",
+        "executionTimeout": 3600,
+        "errorWorkflow": "VzqKEW0ShTXA5vPj",
+        "timezone": "America/New_York",
+        "executionOrder": "v1"
+      },
+      "staticData": {
+        "lastId": 1
+      },
+      "tags": [
+        {
+          "id": "2tUt1wbLX592XDdX",
+          "name": "Production",
+          "createdAt": "2025-05-02T16:18:16.002Z",
+          "updatedAt": "2025-05-02T16:18:16.002Z"
+        }
+      ]
+    }
+  ],
+  "nextCursor": "MTIzZTQ1NjctZTg5Yi0xMmQzLWE0NTYtNDI2NjE0MTc0MDA"
+}

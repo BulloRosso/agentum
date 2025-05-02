@@ -1,6 +1,1 @@
-fastapi==0.109.0
-uvicorn==0.27.0
-pydantic==2.5.3
-httpx==0.24.1
-anyio==3.7.1
-click==8.1.7
+mcp==1.7.1
