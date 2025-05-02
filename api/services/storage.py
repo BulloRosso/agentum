@@ -178,8 +178,26 @@ class StorageTextFile:
             text_files = []
             prefix_len = len(self.prefix)
             
-            for file_path in all_files:
-                if file_path.startswith(self.prefix):
+            # Handle the case where all_files is a list of objects or a dictionary
+            if isinstance(all_files, dict):
+                # If it's a dictionary, the keys should be the file paths
+                all_file_paths = list(all_files.keys())
+            elif isinstance(all_files, list):
+                # If it's a list, check if the items are objects or strings
+                if all_files and hasattr(all_files[0], 'name'):
+                    # If items have a 'name' attribute, use that
+                    all_file_paths = [item.name for item in all_files]
+                else:
+                    # Otherwise assume they are strings
+                    all_file_paths = all_files
+            else:
+                # If it's some other type, convert to string representation
+                logger.warning(f"Unexpected type returned by list(): {type(all_files)}")
+                all_file_paths = []
+                
+            # Now that we have a list of paths, filter those with our prefix
+            for file_path in all_file_paths:
+                if isinstance(file_path, str) and file_path.startswith(self.prefix):
                     # Remove the prefix to get the original file path
                     text_files.append(file_path[prefix_len:])
             
@@ -353,8 +371,26 @@ class StorageBinaryFile:
             binary_files = []
             prefix_len = len(self.prefix)
             
-            for file_path in all_files:
-                if file_path.startswith(self.prefix):
+            # Handle the case where all_files is a list of objects or a dictionary
+            if isinstance(all_files, dict):
+                # If it's a dictionary, the keys should be the file paths
+                all_file_paths = list(all_files.keys())
+            elif isinstance(all_files, list):
+                # If it's a list, check if the items are objects or strings
+                if all_files and hasattr(all_files[0], 'name'):
+                    # If items have a 'name' attribute, use that
+                    all_file_paths = [item.name for item in all_files]
+                else:
+                    # Otherwise assume they are strings
+                    all_file_paths = all_files
+            else:
+                # If it's some other type, convert to string representation
+                logger.warning(f"Unexpected type returned by list(): {type(all_files)}")
+                all_file_paths = []
+                
+            # Now that we have a list of paths, filter those with our prefix
+            for file_path in all_file_paths:
+                if isinstance(file_path, str) and file_path.startswith(self.prefix):
                     # Remove the prefix to get the original file path
                     binary_files.append(file_path[prefix_len:])
             
