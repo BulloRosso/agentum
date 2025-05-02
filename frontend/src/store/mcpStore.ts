@@ -33,7 +33,7 @@ export const useMCPStore = create<MCPState>((set, get) => ({
       set({ status, isLoading: false });
       console.log('Store: Successfully updated state with MCP status data');
     } catch (error) {
-      console.error('Error fetching MCP status:', error);
+      console.error('Store: Error fetching MCP status:', error);
       set({ 
         error: error instanceof Error ? error.message : 'Failed to fetch MCP status', 
         isLoading: false 
