@@ -13,8 +13,8 @@ const App: React.FC = () => {
         </Toolbar>
       </AppBar>
       
-      <Container component="main" sx={{ mt: 4, mb: 4, flex: '1 1 auto' }}>
-        <Box sx={{ my: 4 }}>
+      <Container component="main" sx={{ mt: 2, mb: 4, flex: '1 1 auto', px: 3 }}>
+        <Box sx={{ my: 2 }}>
           <Dashboard />
         </Box>
       </Container>
@@ -22,7 +22,7 @@ const App: React.FC = () => {
       <Box component="footer" sx={{ py: 3, px: 2, mt: 'auto', backgroundColor: (theme) => theme.palette.grey[100] }}>
         <Container maxWidth="sm">
           <Typography variant="body2" color="text.secondary" align="center">
-            © {new Date().getFullYear()} Agents Playground
+            coded by Claude with ❤️ gentle human guidance
           </Typography>
         </Container>
       </Box>

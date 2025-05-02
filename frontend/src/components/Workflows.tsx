@@ -26,16 +26,10 @@ const Workflows: React.FC = () => {
   const { workflows, isLoading, error, fetchWorkflows } = useWorkflowStore();
   const [expandedWorkflows, setExpandedWorkflows] = useState<boolean>(true);
 
-  // Fetch workflows when component mounts
+  // Fetch workflows when component mounts - no auto-refresh
   useEffect(() => {
     fetchWorkflows();
-    
-    // Set up polling interval (every 30 seconds)
-    const intervalId = setInterval(() => {
-      fetchWorkflows();
-    }, 30000); // Poll every 30 seconds
-    
-    return () => clearInterval(intervalId);
+    // Auto-refresh has been disabled as requested
   }, [fetchWorkflows]);
 
   const toggleWorkflowsSection = () => {
@@ -121,7 +115,7 @@ const Workflows: React.FC = () => {
     <Card sx={{ mb: 3 }}>
       <CardContent>
         <Typography variant="h6" component="div" gutterBottom>
-          Workflows
+          Workflows (n8n)
         </Typography>
         
         {isLoading && workflows.length === 0 && (
