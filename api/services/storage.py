@@ -20,12 +20,14 @@ class StorageTextFile:
     Service for managing text-based files in Replit object storage.
     
     Provides CRUD operations for text files such as JSON, plain text, etc.
+    Uses Replit's object storage to store file contents.
     """
     
     def __init__(self):
         """Initialize the storage client"""
         try:
             self.client = Client()
+            self.prefix = "text/"  # Store text files under this prefix
             logger.info("Storage client initialized successfully for text files")
         except Exception as e:
             logger.error(f"Failed to initialize storage client: {str(e)}")
@@ -42,8 +44,9 @@ class StorageTextFile:
             String content of the file, or None if not found
         """
         try:
-            logger.info(f"Retrieving text file: {file_path}")
-            content = self.client.download_as_text(file_path)
+            path = f"{self.prefix}{file_path}"
+            logger.info(f"Retrieving text file: {path}")
+            content = self.client.download_as_text(path)
             return content
         except Exception as e:
             logger.error(f"Error retrieving text file {file_path}: {str(e)}")
@@ -60,9 +63,13 @@ class StorageTextFile:
             Parsed JSON content as dict/list, or None if not found or invalid
         """
         try:
-            logger.info(f"Retrieving JSON file: {file_path}")
-            content = self.client.download_as_text(file_path)
+            content = self.get(file_path)
+            if content is None:
+                return None
+                
+            logger.info(f"Parsing JSON from file: {file_path}")
             return json.loads(content)
+            
         except json.JSONDecodeError as e:
             logger.error(f"Error parsing JSON from {file_path}: {str(e)}")
             return None
@@ -82,8 +89,9 @@ class StorageTextFile:
             True if successful, False otherwise
         """
         try:
-            logger.info(f"Creating text file: {file_path}")
-            self.client.upload_from_text(file_path, content)
+            path = f"{self.prefix}{file_path}"
+            logger.info(f"Creating text file: {path}")
+            self.client.upload_from_text(path, content)
             return True
         except Exception as e:
             logger.error(f"Error creating text file {file_path}: {str(e)}")
@@ -103,8 +111,7 @@ class StorageTextFile:
         try:
             logger.info(f"Creating JSON file: {file_path}")
             content = json.dumps(data, indent=2)
-            self.client.upload_from_text(file_path, content)
-            return True
+            return self.create(file_path, content)
         except Exception as e:
             logger.error(f"Error creating JSON file {file_path}: {str(e)}")
             return False
@@ -120,13 +127,8 @@ class StorageTextFile:
         Returns:
             True if successful, False otherwise
         """
-        try:
-            logger.info(f"Updating text file: {file_path}")
-            self.client.upload_from_text(file_path, content)
-            return True
-        except Exception as e:
-            logger.error(f"Error updating text file {file_path}: {str(e)}")
-            return False
+        # In object storage, create and update are the same operation
+        return self.create(file_path, content)
     
     def update_json(self, file_path: str, data: Any) -> bool:
         """
@@ -139,14 +141,8 @@ class StorageTextFile:
         Returns:
             True if successful, False otherwise
         """
-        try:
-            logger.info(f"Updating JSON file: {file_path}")
-            content = json.dumps(data, indent=2)
-            self.client.upload_from_text(file_path, content)
-            return True
-        except Exception as e:
-            logger.error(f"Error updating JSON file {file_path}: {str(e)}")
-            return False
+        # In object storage, create and update are the same operation
+        return self.create_json(file_path, data)
     
     def delete(self, file_path: str) -> bool:
         """
@@ -159,8 +155,9 @@ class StorageTextFile:
             True if successful, False otherwise
         """
         try:
-            logger.info(f"Deleting file: {file_path}")
-            self.client.delete(file_path)
+            path = f"{self.prefix}{file_path}"
+            logger.info(f"Deleting file: {path}")
+            self.client.delete(path)
             return True
         except Exception as e:
             logger.error(f"Error deleting file {file_path}: {str(e)}")
@@ -171,11 +168,23 @@ class StorageTextFile:
         List all files in storage
         
         Returns:
-            List of file paths
+            List of file paths (without the prefix)
         """
         try:
             logger.info("Listing all files in storage")
-            return self.client.list()
+            all_files = self.client.list()
+            
+            # Filter only the text files (those with our prefix)
+            text_files = []
+            prefix_len = len(self.prefix)
+            
+            for file_path in all_files:
+                if file_path.startswith(self.prefix):
+                    # Remove the prefix to get the original file path
+                    text_files.append(file_path[prefix_len:])
+            
+            return text_files
+            
         except Exception as e:
             logger.error(f"Error listing files: {str(e)}")
             return []
@@ -192,6 +201,7 @@ class StorageBinaryFile:
         """Initialize the storage client"""
         try:
             self.client = Client()
+            self.prefix = "binary/"  # Store binary files under this prefix
             logger.info("Storage client initialized successfully for binary files")
         except Exception as e:
             logger.error(f"Failed to initialize storage client: {str(e)}")
@@ -208,8 +218,9 @@ class StorageBinaryFile:
             Binary content of the file, or None if not found
         """
         try:
-            logger.info(f"Retrieving binary file: {file_path}")
-            content = self.client.download_as_bytes(file_path)
+            path = f"{self.prefix}{file_path}"
+            logger.info(f"Retrieving binary file: {path}")
+            content = self.client.download_as_bytes(path)
             return content
         except Exception as e:
             logger.error(f"Error retrieving binary file {file_path}: {str(e)}")
@@ -227,8 +238,9 @@ class StorageBinaryFile:
             True if successful, False otherwise
         """
         try:
-            logger.info(f"Creating binary file: {file_path}")
-            self.client.upload_from_bytes(file_path, content)
+            path = f"{self.prefix}{file_path}"
+            logger.info(f"Creating binary file: {path}")
+            self.client.upload_from_bytes(path, content)
             return True
         except Exception as e:
             logger.error(f"Error creating binary file {file_path}: {str(e)}")
@@ -245,13 +257,8 @@ class StorageBinaryFile:
         Returns:
             True if successful, False otherwise
         """
-        try:
-            logger.info(f"Updating binary file: {file_path}")
-            self.client.upload_from_bytes(file_path, content)
-            return True
-        except Exception as e:
-            logger.error(f"Error updating binary file {file_path}: {str(e)}")
-            return False
+        # In object storage, create and update are the same operation
+        return self.create(file_path, content)
     
     def delete(self, file_path: str) -> bool:
         """
@@ -264,8 +271,9 @@ class StorageBinaryFile:
             True if successful, False otherwise
         """
         try:
-            logger.info(f"Deleting binary file: {file_path}")
-            self.client.delete(file_path)
+            path = f"{self.prefix}{file_path}"
+            logger.info(f"Deleting binary file: {path}")
+            self.client.delete(path)
             return True
         except Exception as e:
             logger.error(f"Error deleting binary file {file_path}: {str(e)}")
@@ -283,9 +291,22 @@ class StorageBinaryFile:
             True if successful, False otherwise
         """
         try:
+            path = f"{self.prefix}{storage_path}"
             logger.info(f"Downloading file {storage_path} to {local_path}")
-            self.client.download_to_filename(storage_path, local_path)
+            
+            # Ensure the destination directory exists
+            os.makedirs(os.path.dirname(os.path.abspath(local_path)), exist_ok=True)
+            
+            # Download the content and write to local file
+            content = self.get(storage_path)
+            if content is None:
+                return False
+                
+            with open(local_path, 'wb') as f:
+                f.write(content)
+                
             return True
+            
         except Exception as e:
             logger.error(f"Error downloading file {storage_path} to {local_path}: {str(e)}")
             return False
@@ -302,9 +323,17 @@ class StorageBinaryFile:
             True if successful, False otherwise
         """
         try:
+            if not os.path.exists(local_path):
+                logger.warning(f"Local file not found: {local_path}")
+                return False
+                
             logger.info(f"Uploading file from {local_path} to {storage_path}")
-            self.client.upload_from_filename(storage_path, local_path)
-            return True
+            
+            # Read the local file and upload its content
+            with open(local_path, 'rb') as f:
+                content = f.read()
+                return self.create(storage_path, content)
+            
         except Exception as e:
             logger.error(f"Error uploading file from {local_path} to {storage_path}: {str(e)}")
             return False
@@ -314,11 +343,23 @@ class StorageBinaryFile:
         List all files in storage
         
         Returns:
-            List of file paths
+            List of file paths (without the prefix)
         """
         try:
-            logger.info("Listing all files in storage")
-            return self.client.list()
+            logger.info("Listing all binary files in storage")
+            all_files = self.client.list()
+            
+            # Filter only the binary files (those with our prefix)
+            binary_files = []
+            prefix_len = len(self.prefix)
+            
+            for file_path in all_files:
+                if file_path.startswith(self.prefix):
+                    # Remove the prefix to get the original file path
+                    binary_files.append(file_path[prefix_len:])
+            
+            return binary_files
+            
         except Exception as e:
-            logger.error(f"Error listing files: {str(e)}")
+            logger.error(f"Error listing binary files: {str(e)}")
             return []
