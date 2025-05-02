@@ -162,7 +162,7 @@ def main(port: int, transport: str) -> int:
         from starlette.applications import Starlette
         from starlette.routing import Mount, Route
 
-        sse = SseServerTransport("/messages/")
+        sse = SseServerTransport("/")
 
         async def handle_sse(request):
             async with sse.connect_sse(
@@ -193,7 +193,7 @@ def main(port: int, transport: str) -> int:
                 Route("/sse/tools", endpoint=handle_tools),
                 Route("/sse/resources", endpoint=handle_resources),
                 Route("/sse/prompts", endpoint=handle_prompts),
-                Mount("/messages/", app=sse.handle_post_message),
+                Mount("/", app=sse.handle_post_message),
             ],
         )
 
