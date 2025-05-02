@@ -2,7 +2,7 @@ import os
 import logging
 import requests
 from typing import Optional
-from api.models.workflow import Workflow, WorkflowList
+from workflow_model import WorkflowList
 
 # Configure logging
 logger = logging.getLogger("api.workflows")
