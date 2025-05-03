@@ -77,7 +77,7 @@ const APIStatusCard = () => {
           <React.Fragment key={`method-${index}`}>
             {index > 0 && <Divider component="li" />}
             <ListItem>
-              <ListItemIcon sx={{ minWidth: 36 }}>
+              <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                 <ApiIcon fontSize="small" color="primary" />
               </ListItemIcon>
               <ListItemText 
@@ -155,7 +155,7 @@ const APIStatusCard = () => {
                 }}
                 onClick={toggleMethodsSection}
               >
-                <ApiIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                <ApiIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main', mt: 0.5 }} />
                 <Typography variant="subtitle1">
                   Available Methods ({apiMethods.length})
                 </Typography>

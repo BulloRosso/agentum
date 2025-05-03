@@ -98,7 +98,7 @@ const MCPStatusCard: React.FC = () => {
                 }}
                 onClick={() => toggleSection('tools')}
               >
-                <BuildIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                <BuildIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main', mt: 0.5 }} />
                 <Typography variant="subtitle1">
                   Available Tools ({tools.length})
                 </Typography>
@@ -111,7 +111,7 @@ const MCPStatusCard: React.FC = () => {
                   <List dense>
                     {tools.map(tool => (
                       <ListItem key={tool.name}>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
+                        <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                           <BuildIcon fontSize="small" />
                         </ListItemIcon>
                         <ListItemText 
@@ -143,7 +143,7 @@ const MCPStatusCard: React.FC = () => {
                 }}
                 onClick={() => toggleSection('resources')}
               >
-                <DescriptionIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                <DescriptionIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main', mt: 0.5 }} />
                 <Typography variant="subtitle1">
                   Available Resources ({resources.length})
                 </Typography>
@@ -156,7 +156,7 @@ const MCPStatusCard: React.FC = () => {
                   <List dense>
                     {resources.map(resource => (
                       <ListItem key={resource.name}>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
+                        <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                           <DescriptionIcon fontSize="small" />
                         </ListItemIcon>
                         <ListItemText 
@@ -188,7 +188,7 @@ const MCPStatusCard: React.FC = () => {
                 }}
                 onClick={() => toggleSection('prompts')}
               >
-                <ChatIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                <ChatIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main', mt: 0.5 }} />
                 <Typography variant="subtitle1">
                   Available Prompts ({prompts.length})
                 </Typography>
@@ -201,7 +201,7 @@ const MCPStatusCard: React.FC = () => {
                   <List dense>
                     {prompts.map(prompt => (
                       <ListItem key={prompt.name}>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
+                        <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                           <ChatIcon fontSize="small" />
                         </ListItemIcon>
                         <ListItemText 

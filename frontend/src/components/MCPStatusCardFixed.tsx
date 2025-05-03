@@ -26,7 +26,7 @@ import { useSseConnection, connectToSSE } from '../api/mcpSseApi';
 import MCPTestModal, { TestType } from './MCPTestModal';
 
 const MCPStatusCard: React.FC = () => {
-  const { status, tools, resources, prompts, isLoading, error, fetchAll } = useMCPStore();
+  const { status, tools = [], resources = [], prompts = [], isLoading, error, fetchAll } = useMCPStore();
   const { isConnected } = useSseConnection();
   
   // Local state for expand/collapse sections

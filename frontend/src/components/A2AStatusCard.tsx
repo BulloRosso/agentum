@@ -84,7 +84,7 @@ const A2AStatusCard: React.FC = () => {
                 </Button>
               }
             >
-              <ListItemIcon sx={{ minWidth: 36 }}>
+              <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                 <SmartToyIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText 
@@ -207,7 +207,7 @@ const A2AStatusCard: React.FC = () => {
                   }}
                   onClick={toggleAgentsSection}
                 >
-                  <SmartToyIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+                  <SmartToyIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main', mt: 0.5 }} />
                   <Typography variant="subtitle1">
                     Available Agents ({agents.length})
                   </Typography>
