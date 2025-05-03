@@ -7,21 +7,9 @@ const App: React.FC = () => {
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar position="static" elevation={0}>
         <Toolbar>
-          <Box 
-            component="img" 
-            src="/images/logo.svg" 
-            alt="Logo" 
-            sx={{ height: 40, mr: 2 }} 
-          />
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Agents Playground
           </Typography>
-          <Box 
-            component="img" 
-            src="/images/workflow-icon.svg" 
-            alt="Workflow" 
-            sx={{ height: 40 }} 
-          />
         </Toolbar>
       </AppBar>
       
