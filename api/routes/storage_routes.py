@@ -240,7 +240,7 @@ async def list_storage(path: str = ""):
         raise HTTPException(status_code=500, detail=f"Error listing storage: {str(e)}")
 
 @router.get("/file")
-async def get_file(path: str = None, binary: bool = False):
+async def get_file(path: str, binary: bool = False):
     """
     Get file content from storage
     
@@ -251,8 +251,6 @@ async def get_file(path: str = None, binary: bool = False):
     Returns:
         File content
     """
-    if path is None:
-        raise HTTPException(status_code=400, detail="Path parameter is required")
         
     logger.info(f"Getting file: {path}, binary: {binary}")
     

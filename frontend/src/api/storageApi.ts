@@ -54,14 +54,14 @@ export const fetchFileContent = async (path: string, binary: boolean = false): P
     if (binary) {
       // For binary files, return as blob
       const response = await axios.get(`${API_URL}/api/v1/storage/file`, {
-        params: { path, binary },
+        params: { path: path, binary: binary },
         responseType: 'blob'
       });
       return response.data;
     } else {
       // For text files, return structured content
       const response = await axios.get(`${API_URL}/api/v1/storage/file`, {
-        params: { path, binary }
+        params: { path: path, binary: binary }
       });
       return response.data;
     }

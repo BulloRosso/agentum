@@ -195,7 +195,7 @@ app.use('/api', (req, res) => {
 
 // Storage API endpoints - handle all methods (GET, POST, DELETE)
 app.all(['/api/v1/storage*', '/v1/storage*'], (req, res) => {
-  logger.info(`Proxying storage API request: ${req.method} ${req.path}`);
+  logger.info(`Proxying storage API request: ${req.method} ${req.path} with query: ${JSON.stringify(req.query)}`);
   
   // Remove /api prefix if it exists, and route to the API server
   let targetPath = req.path;
@@ -203,8 +203,16 @@ app.all(['/api/v1/storage*', '/v1/storage*'], (req, res) => {
     targetPath = targetPath.substring(4); // Remove /api
   }
   
+  // Preserve query parameters
+  const targetUrl = new URL(`http://localhost:3000${targetPath}`);
+  
+  // Copy all query parameters
+  Object.keys(req.query).forEach(key => {
+    targetUrl.searchParams.set(key, req.query[key]);
+  });
+  
   proxy.web(req, res, {
-    target: `http://localhost:3000${targetPath}`,
+    target: targetUrl.toString(),
     ignorePath: true,
     changeOrigin: true
   });

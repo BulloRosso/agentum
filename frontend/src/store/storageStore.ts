@@ -100,16 +100,27 @@ export const useStorageStore = create<StorageState>((set, get) => ({
         ? `${get().currentPath}/${file.name}` 
         : file.name;
       
+      console.log(`Viewing file: ${path}, is_binary: ${file.is_binary}, extension: ${file.name.split('.').pop()}`);
+      
       // Only fetch content for non-binary files that we can display in Monaco editor
       if (!file.is_binary || file.name.endsWith('.svg')) {
-        const content = await fetchFileContent(path, false) as FileContentResponse;
-        set({
-          fileContent: content,
-          isContentDrawerOpen: true,
-          isLoading: false
-        });
+        console.log(`Fetching text content for: ${path}`);
+        try {
+          const content = await fetchFileContent(path, false) as FileContentResponse;
+          console.log('File content response:', content);
+          
+          set({
+            fileContent: content,
+            isContentDrawerOpen: true,
+            isLoading: false
+          });
+        } catch (fetchError: any) {
+          console.error('Error fetching file content:', fetchError);
+          throw new Error(`Failed to fetch file content: ${fetchError?.message || 'Unknown error'}`);
+        }
       } else {
         // For binary files we don't need to fetch content here since image tag will do that
+        console.log(`Setting up binary content display for: ${path}`);
         set({
           fileContent: {
             name: file.name,
