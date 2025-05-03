@@ -29,7 +29,6 @@ const App: React.FC = () => {
 
       <div>
         <img src="/img/builder-bot-upper.png" style={{ position: 'absolute', bottom: '0px', left: '50%', transform: 'translateX(-50%)' }} alt="Builder Bot" />
-        <img src="/test-icon.svg" style={{ position: 'absolute', top: '70px', right: '20px', width: '50px', height: '50px' }} alt="Test SVG" />
       </div>
     </Box>
   );
