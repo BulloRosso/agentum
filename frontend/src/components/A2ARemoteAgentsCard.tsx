@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
 import axios from 'axios';
 import AgentCardModal from './AgentCardModal';
 
@@ -146,8 +147,7 @@ const A2ARemoteAgentsCard: React.FC = () => {
         // Set this host as expanded by default
         setExpandedHosts(prev => ({...prev, [validatedUrl]: true}));
         
-        // Clear input
-        setRemoteHostInput('');
+        // Don't clear input - leave it visible for the user
       } else {
         setError('Invalid response from remote host');
       }
@@ -190,7 +190,7 @@ const A2ARemoteAgentsCard: React.FC = () => {
           A2A Remote Agents
         </Typography>
         
-        <Box sx={{ display: 'flex', mb: 3, gap: 1, mt: 1 }}>
+        <Box sx={{ display: 'flex', mb: 3, gap: 1, marginTop: 20 }}>
           <TextField
             label="Remote Host"
             variant="outlined"
@@ -268,6 +268,10 @@ const A2ARemoteAgentsCard: React.FC = () => {
                             </Button>
                           }
                         >
+                          <SmartToyIcon 
+                            color="primary" 
+                            sx={{ mr: 2, fontSize: 20 }} 
+                          />
                           <ListItemText
                             primary={agent.name}
                             secondary={agent.description}
