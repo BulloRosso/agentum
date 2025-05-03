@@ -21,6 +21,8 @@ import {
   Mic as MicIcon,
   AttachFile as AttachFileIcon
 } from '@mui/icons-material';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 // Define a type for chat messages
 interface ChatMessage {
@@ -41,13 +43,26 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
     {
       id: '1',
       sender: 'bot',
-      text: 'Hello! I\'m your AI assistant. How can I help you today?',
+      text: 'Hello! I\'m your AI assistant. How can I help you today?\n\nI can understand **markdown** formatting, including:\n- Bullet lists\n- *Italic* and **bold** text\n- `Code snippets`\n- [Links](https://www.example.com)',
       timestamp: new Date()
     }
   ]);
   const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Markdown rendering function
+  const renderMarkdown = (text: string): string => {
+    try {
+      // Convert markdown to HTML using marked
+      const rawHTML = marked(text);
+      // Sanitize HTML to prevent XSS attacks
+      return DOMPurify.sanitize(rawHTML as string);
+    } catch (error) {
+      console.error('Error rendering markdown:', error);
+      return text; // Fallback to plain text if there's an error
+    }
+  };
 
   // Scroll to bottom of chat when messages change
   React.useEffect(() => {
@@ -220,11 +235,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
                         component="div"
                         sx={{
                           wordBreak: 'break-word',
-                          whiteSpace: 'pre-wrap',
                         }}
-                      >
-                        {msg.text}
-                      </Typography>
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
+                      />
                       <Typography 
                         variant="caption" 
                         color="text.secondary" 
