@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { 
   Box, 
   Typography, 
-  Paper, 
   List, 
   ListItem, 
   ListItemText, 
@@ -16,7 +15,9 @@ import {
   Toolbar,
   Pagination,
   CircularProgress,
-  Alert
+  Alert,
+  Card,
+  CardContent
 } from '@mui/material';
 import {
   Folder as FolderIcon,
@@ -184,22 +185,27 @@ const ToolDataExplorer: React.FC = () => {
   };
 
   return (
-    <Paper elevation={2} sx={{ p: 2, mb: 3 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h5" component="h2">
+    <Card sx={{ mb: 3 }}>
+      <CardContent>
+        <Typography variant="h6" component="div" gutterBottom>
           Tool Data Explorer
         </Typography>
         
-        <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+          <Typography variant="body2" color="text.secondary">
+            {folders.length} folder{folders.length !== 1 ? 's' : ''}, {files.length} file{files.length !== 1 ? 's' : ''}
+          </Typography>
+          
           <Button 
             variant="outlined" 
+            size="small"
             startIcon={<RefreshIcon />}
             onClick={() => fetchFiles(currentPath)}
+            disabled={isLoading}
           >
             Refresh
           </Button>
         </Box>
-      </Box>
       
       {/* Current path display */}
       <Typography variant="body2" color="textSecondary" sx={{ mb: 1 }}>
@@ -341,7 +347,8 @@ const ToolDataExplorer: React.FC = () => {
           )}
         </Box>
       </Drawer>
-    </Paper>
+      </CardContent>
+    </Card>
   );
 };
 
