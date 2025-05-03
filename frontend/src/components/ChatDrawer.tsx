@@ -43,7 +43,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
     {
       id: '1',
       sender: 'bot',
-      text: 'Hello! I\'m your AI assistant. How can I help you today?\n\nI can understand **markdown** formatting, including:\n- Bullet lists\n- *Italic* and **bold** text\n- `Code snippets`\n- [Links](https://www.example.com)',
+      text: 'Hello! I\'m your AI assistant. How can I help you today?\n\nI can understand **markdown** formatting, including:\n- Bullet lists\n- *Italic* and **bold** text\n- `inline code`\n- [Links](https://www.example.com)\n\n```javascript\n// Code blocks with syntax highlighting\nfunction example() {\n  return "Hello World!";\n}\n```',
       timestamp: new Date()
     }
   ]);
@@ -51,13 +51,21 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Set up marked options once at component initialization
+  React.useEffect(() => {
+    marked.setOptions({
+      gfm: true,       // GitHub Flavored Markdown
+      breaks: true,    // Convert newlines to <br>
+    });
+  }, []);
+
   // Markdown rendering function
   const renderMarkdown = (text: string): string => {
     try {
-      // Convert markdown to HTML using marked
-      const rawHTML = marked(text);
-      // Sanitize HTML to prevent XSS attacks
-      return DOMPurify.sanitize(rawHTML as string);
+      // Use marked to parse markdown to HTML
+      const html = marked(text);
+      // Sanitize to prevent XSS attacks
+      return typeof html === 'string' ? DOMPurify.sanitize(html) : text;
     } catch (error) {
       console.error('Error rendering markdown:', error);
       return text; // Fallback to plain text if there's an error
@@ -87,12 +95,27 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
 
     // Simulate bot response (would be replaced with actual API call)
     setTimeout(() => {
+      // Create a more interesting response that shows markdown capabilities
+      const responseText = `This is a simulated response to "${message}".\n\n` +
+        `You can also try sending markdown in your messages:\n` +
+        `- Use **bold** or *italic* text\n` +
+        `- Create bullet lists\n` +
+        `- Add \`inline code\` or code blocks:\n\n` +
+        "```javascript\n" +
+        "// Example code\n" +
+        "function sayHello() {\n" +
+        "  console.log('Hello world!');\n" +
+        "}\n" +
+        "```\n\n" +
+        "In a complete implementation, this would connect to the OpenAI API.";
+      
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: 'bot',
-        text: `This is a simulated response to "${message}". In a complete implementation, this would connect to the OpenAI API.`,
+        text: responseText,
         timestamp: new Date()
       };
+      
       setMessages(prev => [...prev, botMessage]);
     }, 1000);
   };
@@ -144,7 +167,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
         const botResponse: ChatMessage = {
           id: (Date.now() + 1).toString(),
           sender: 'bot',
-          text: `I've received your file: ${file.name}. In a complete implementation, I would analyze this file using OpenAI's multimodal capabilities.`,
+          text: `**File received:** \`${file.name}\`\n\nIn a complete implementation, I would analyze this file using OpenAI's **multimodal capabilities** and provide insights about the content.\n\n![File analysis](https://via.placeholder.com/300x150?text=File+Analysis+Demo)`,
           timestamp: new Date()
         };
         setMessages(prev => [...prev, botResponse]);
@@ -233,6 +256,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
                     >
                       <Typography
                         component="div"
+                        className="markdown-content"
                         sx={{
                           wordBreak: 'break-word',
                         }}
