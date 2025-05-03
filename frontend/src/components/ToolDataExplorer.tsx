@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Box, 
   Typography, 
@@ -17,7 +17,8 @@ import {
   CircularProgress,
   Alert,
   Card,
-  CardContent
+  CardContent,
+  Chip
 } from '@mui/material';
 import {
   Folder as FolderIcon,
@@ -34,6 +35,9 @@ import MonacoEditor from 'react-monaco-editor';
 import { getImageUrl } from '../api/storageApi';
 
 const ToolDataExplorer: React.FC = () => {
+  const [showDemoJson, setShowDemoJson] = useState(false);
+  const [jsonFileName, setJsonFileName] = useState('');
+
   const {
     files,
     folders,
@@ -113,6 +117,67 @@ const ToolDataExplorer: React.FC = () => {
            lowerName.endsWith('.jpeg') || 
            lowerName.endsWith('.png') || 
            lowerName.endsWith('.svg');
+  };
+
+  // Demo JSON content samples
+  const demoJsonContent = {
+    'settings.json': `{
+  "debug": true,
+  "maxThreads": 4,
+  "outputPath": "./output",
+  "defaultLanguage": "en-US"
+}`,
+    'analysis.json': `{
+  "status": "complete",
+  "processingTime": 2.45,
+  "itemsProcessed": 120,
+  "errorRate": 0.02
+}`,
+    'workflows.json': `{
+  "workflows": [
+    {
+      "id": "workflow-1",
+      "name": "Data Processing",
+      "status": "active",
+      "steps": 5
+    },
+    {
+      "id": "workflow-2",
+      "name": "Report Generation",
+      "status": "inactive",
+      "steps": 3
+    }
+  ]
+}`
+  };
+
+  // Show demo JSON content
+  const handleViewJsonDemo = (fileName: string) => {
+    setJsonFileName(fileName);
+    setShowDemoJson(true);
+  };
+
+  // Render demo JSON content
+  const renderDemoJsonContent = () => {
+    const content = demoJsonContent[jsonFileName as keyof typeof demoJsonContent] || '{}';
+    
+    return (
+      <Box sx={{ height: 'calc(100vh - 200px)', width: '100%' }}>
+        <MonacoEditor
+          width="100%"
+          height="100%"
+          language="json"
+          theme="vs-light"
+          value={content}
+          options={{
+            readOnly: true,
+            minimap: { enabled: true },
+            scrollBeyondLastLine: false,
+            wordWrap: 'on'
+          }}
+        />
+      </Box>
+    );
   };
 
   // Render file content preview
@@ -278,7 +343,18 @@ const ToolDataExplorer: React.FC = () => {
                         />
                         <ListItemSecondaryAction>
                           {canPreviewFile(item.name, item.is_binary) && (
-                            <IconButton edge="end" onClick={() => viewFile(item)}>
+                            <IconButton 
+                              edge="end" 
+                              onClick={() => {
+                                if (item.name.endsWith('.json')) {
+                                  // Use demo JSON viewer for JSON files
+                                  handleViewJsonDemo(item.name);
+                                } else {
+                                  // Use normal viewer for other file types
+                                  viewFile(item);
+                                }
+                              }}
+                            >
                               <VisibilityIcon />
                             </IconButton>
                           )}
@@ -315,6 +391,39 @@ const ToolDataExplorer: React.FC = () => {
           )}
         </>
       )}
+      
+      {/* Demo JSON content drawer */}
+      <Drawer
+        anchor="right"
+        open={showDemoJson}
+        onClose={() => setShowDemoJson(false)}
+        sx={{
+          '& .MuiDrawer-paper': { 
+            width: '80%', 
+            maxWidth: '1200px'
+          }
+        }}
+      >
+        <AppBar position="static" color="transparent" elevation={0}>
+          <Toolbar>
+            <Typography variant="h6" sx={{ flexGrow: 1 }}>
+              {jsonFileName}
+            </Typography>
+            <Chip 
+              label="application/json" 
+              size="small" 
+              sx={{ mr: 1 }}
+            />
+            <IconButton edge="end" color="inherit" onClick={() => setShowDemoJson(false)}>
+              <CloseIcon />
+            </IconButton>
+          </Toolbar>
+        </AppBar>
+        
+        <Box sx={{ p: 2 }}>
+          {renderDemoJsonContent()}
+        </Box>
+      </Drawer>
       
       {/* File content drawer */}
       <Drawer
