@@ -5,6 +5,7 @@ import MCPStatusCard from './MCPStatusCardFixed';
 import APIStatusCard from './APIStatusCard';
 import Workflows from './Workflows';
 import A2ARemoteAgentsCard from './A2ARemoteAgentsCard';
+import ToolDataExplorer from './ToolDataExplorer';
 import { useApiStore } from '../store/apiStore';
 import { useA2AStore } from '../store/a2aStore';
 import { useMCPStore } from '../store/mcpStore';
@@ -63,6 +64,11 @@ const Dashboard: React.FC = () => {
         {/* Workflows */}
         <Grid item xs={12}>
           <Workflows />
+        </Grid>
+        
+        {/* Tool Data Explorer */}
+        <Grid item xs={12}>
+          <ToolDataExplorer />
         </Grid>
         
         <Grid item xs={12} md={6}>

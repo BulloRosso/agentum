@@ -15,6 +15,9 @@ import requests
 from models.workflow import WorkflowList
 from services.workflow import WorkflowService
 
+# Import routes
+from routes.storage_routes import router as storage_router
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -30,6 +33,9 @@ app = FastAPI(
     docs_url=None,  # Disable default Swagger UI
     redoc_url=None,  # Disable default Redoc URL (we'll create a custom one)
 )
+
+# Include routers
+app.include_router(storage_router)
 
 # Add CORS middleware
 app.add_middleware(
