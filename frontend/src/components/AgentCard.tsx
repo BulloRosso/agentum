@@ -57,6 +57,10 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
   };
 
   const renderCapabilityIcon = (capability: boolean | undefined) => {
+    // Handle case where capability might be undefined or not a boolean
+    if (capability === undefined || capability === null || typeof capability !== 'boolean') {
+      return '⚪';
+    }
     return capability ? '🟢' : '⚪';
   };
 
@@ -106,17 +110,17 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
         
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
           <Chip 
-            icon={<span>{renderCapabilityIcon(agent.capabilities.streaming)}</span>}
+            icon={<span>{renderCapabilityIcon(agent.capabilities?.streaming)}</span>}
             label="Streaming" 
             variant="outlined"
           />
           <Chip 
-            icon={<span>{renderCapabilityIcon(agent.capabilities.pushNotifications)}</span>}
+            icon={<span>{renderCapabilityIcon(agent.capabilities?.pushNotifications)}</span>}
             label="Push Notifications" 
             variant="outlined"
           />
           <Chip 
-            icon={<span>{renderCapabilityIcon(agent.capabilities.stateTransitionHistory)}</span>}
+            icon={<span>{renderCapabilityIcon(agent.capabilities?.stateTransitionHistory)}</span>}
             label="State Transition History" 
             variant="outlined"
           />
@@ -130,9 +134,11 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
         
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" component="div">
-            Schemes: {agent.authentication.schemes.join(', ')}
+            Schemes: {agent.authentication?.schemes && Array.isArray(agent.authentication.schemes) 
+              ? agent.authentication.schemes.join(', ') 
+              : 'None specified'}
           </Typography>
-          {agent.authentication.credentials && (
+          {agent.authentication?.credentials && (
             <Typography variant="body2" component="div">
               Credentials: {agent.authentication.credentials}
             </Typography>
@@ -147,10 +153,14 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
         
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" component="div">
-            Input: {agent.defaultInputModes.join(', ')}
+            Input: {agent.defaultInputModes && Array.isArray(agent.defaultInputModes) 
+              ? agent.defaultInputModes.join(', ') 
+              : 'None specified'}
           </Typography>
           <Typography variant="body2" component="div">
-            Output: {agent.defaultOutputModes.join(', ')}
+            Output: {agent.defaultOutputModes && Array.isArray(agent.defaultOutputModes) 
+              ? agent.defaultOutputModes.join(', ') 
+              : 'None specified'}
           </Typography>
         </Box>
         
@@ -167,26 +177,26 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
           }}
         >
           <Typography variant="subtitle1" component="div">
-            Skills ({agent.skills.length})
+            Skills ({agent.skills && Array.isArray(agent.skills) ? agent.skills.length : 0})
           </Typography>
           {expandedSkills ? <ExpandLessIcon /> : <ExpandMoreIcon />}
         </Box>
         
         <Collapse in={expandedSkills} timeout="auto">
-          {agent.skills.length > 0 ? (
+          {agent.skills && Array.isArray(agent.skills) && agent.skills.length > 0 ? (
             <List dense>
               {agent.skills.map((skill) => (
-                <React.Fragment key={skill.id}>
+                <React.Fragment key={skill.id || `skill-${Math.random()}`}>
                   <ListItem alignItems="flex-start">
                     <ListItemText
-                      primary={skill.name}
+                      primary={skill.name || 'Unnamed Skill'}
                       secondary={
                         <React.Fragment>
                           <Typography variant="body2" component="span" color="text.primary">
-                            {skill.description}
+                            {skill.description || 'No description provided'}
                           </Typography>
                           
-                          {skill.tags.length > 0 && (
+                          {skill.tags && Array.isArray(skill.tags) && skill.tags.length > 0 && (
                             <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                               {skill.tags.map((tag) => (
                                 <Chip key={tag} label={tag} size="small" />
@@ -194,7 +204,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
                             </Box>
                           )}
                           
-                          {skill.examples && skill.examples.length > 0 && (
+                          {skill.examples && Array.isArray(skill.examples) && skill.examples.length > 0 && (
                             <Box sx={{ mt: 1 }}>
                               <Typography variant="body2" component="div">
                                 Examples:
@@ -211,12 +221,12 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
                           
                           {(skill.inputModes || skill.outputModes) && (
                             <Box sx={{ mt: 1 }}>
-                              {skill.inputModes && (
+                              {skill.inputModes && Array.isArray(skill.inputModes) && (
                                 <Typography variant="body2" component="div">
                                   Input: {skill.inputModes.join(', ')}
                                 </Typography>
                               )}
-                              {skill.outputModes && (
+                              {skill.outputModes && Array.isArray(skill.outputModes) && (
                                 <Typography variant="body2" component="div">
                                   Output: {skill.outputModes.join(', ')}
                                 </Typography>

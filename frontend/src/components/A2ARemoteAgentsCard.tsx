@@ -207,51 +207,54 @@ const A2ARemoteAgentsCard: React.FC = () => {
             No remote hosts connected. Add a remote host to view available agents.
           </Typography>
         ) : (
-          remoteHosts.map((host) => (
-            <Box key={host.url} sx={{ mb: 2 }}>
-              <Box
-                onClick={() => toggleHostSection(host.url)}
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  py: 1
-                }}
-              >
-                <Typography variant="subtitle1">
-                  Remote Agents ({host.agents.length}) - {host.url}
-                </Typography>
-                {expandedHosts[host.url] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          <>
+            <Divider sx={{ my: 2 }} />
+            {remoteHosts.map((host) => (
+              <Box key={host.url} sx={{ mb: 2 }}>
+                <Box
+                  onClick={() => toggleHostSection(host.url)}
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    py: 1
+                  }}
+                >
+                  <Typography variant="subtitle1">
+                    Remote Agents ({host.agents.length})
+                  </Typography>
+                  {expandedHosts[host.url] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </Box>
+                
+                <Collapse in={expandedHosts[host.url]} timeout="auto">
+                  <List dense>
+                    {host.agents.map((agent, index) => (
+                      <React.Fragment key={`${host.url}-${agent.name}-${index}`}>
+                        <ListItem
+                          secondaryAction={
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => openAgentCardModal(agent)}
+                            >
+                              Agent Card
+                            </Button>
+                          }
+                        >
+                          <ListItemText
+                            primary={agent.name}
+                            secondary={agent.description}
+                          />
+                        </ListItem>
+                        {index < host.agents.length - 1 && <Divider component="li" />}
+                      </React.Fragment>
+                    ))}
+                  </List>
+                </Collapse>
               </Box>
-              
-              <Collapse in={expandedHosts[host.url]} timeout="auto">
-                <List dense>
-                  {host.agents.map((agent, index) => (
-                    <React.Fragment key={`${host.url}-${agent.name}-${index}`}>
-                      <ListItem
-                        secondaryAction={
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => openAgentCardModal(agent)}
-                          >
-                            Agent Card
-                          </Button>
-                        }
-                      >
-                        <ListItemText
-                          primary={agent.name}
-                          secondary={agent.description}
-                        />
-                      </ListItem>
-                      {index < host.agents.length - 1 && <Divider component="li" />}
-                    </React.Fragment>
-                  ))}
-                </List>
-              </Collapse>
-            </Box>
-          ))
+            ))}
+          </>
         )}
       </CardContent>
       
