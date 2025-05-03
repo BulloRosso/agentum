@@ -65,12 +65,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
   };
 
   return (
-    <Card sx={{ width: '100%', mb: 2 }}>
-      <CardContent>
-        <Typography variant="h5" component="div" gutterBottom>
-          {agent.name}
-        </Typography>
-        
+   <Box> 
         <Typography variant="body2" color="text.secondary" gutterBottom>
           {agent.description}
         </Typography>
@@ -247,8 +242,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
             </Typography>
           )}
         </Collapse>
-      </CardContent>
-    </Card>
+     </Box>  
   );
 };
 

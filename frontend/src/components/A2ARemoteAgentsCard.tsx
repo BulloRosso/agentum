@@ -69,6 +69,13 @@ const A2ARemoteAgentsCard: React.FC = () => {
   // Load saved remote hosts from localStorage on component mount
   useEffect(() => {
     const savedHostsJSON = localStorage.getItem('a2a_remote_hosts');
+    const lastUsedHost = localStorage.getItem('a2a_last_remote_host');
+    
+    // Set the input field with the last used remote host URL
+    if (lastUsedHost) {
+      setRemoteHostInput(lastUsedHost);
+    }
+    
     if (savedHostsJSON) {
       try {
         const savedHosts = JSON.parse(savedHostsJSON);
@@ -106,6 +113,9 @@ const A2ARemoteAgentsCard: React.FC = () => {
     if (!remoteHostInput.trim()) return;
     
     const validatedUrl = validateUrl(remoteHostInput.trim());
+    
+    // Save the last used host
+    localStorage.setItem('a2a_last_remote_host', validatedUrl);
     
     // Check if already added
     if (remoteHosts.some(host => host.url === validatedUrl)) {
@@ -164,6 +174,14 @@ const A2ARemoteAgentsCard: React.FC = () => {
   const closeAgentCardModal = () => {
     setModalOpen(false);
   };
+  
+  const clearRemoteHosts = () => {
+    // Clear the remote hosts from state and localStorage
+    setRemoteHosts([]);
+    localStorage.removeItem('a2a_remote_hosts');
+    localStorage.removeItem('a2a_last_remote_host');
+    setError(null);
+  };
 
   return (
     <Card sx={{ mb: 3 }}>
@@ -172,7 +190,7 @@ const A2ARemoteAgentsCard: React.FC = () => {
           A2A Remote Agents
         </Typography>
         
-        <Box sx={{ display: 'flex', mb: 3, gap: 1 }}>
+        <Box sx={{ display: 'flex', mb: 3, gap: 1, mt: 1 }}>
           <TextField
             label="Remote Host"
             variant="outlined"
@@ -193,6 +211,14 @@ const A2ARemoteAgentsCard: React.FC = () => {
             disabled={isLoading}
           >
             {isLoading ? <CircularProgress size={24} /> : 'Connect'}
+          </Button>
+          <Button 
+            variant="outlined" 
+            color="error"
+            onClick={clearRemoteHosts}
+            disabled={isLoading || remoteHosts.length === 0}
+          >
+            Clear
           </Button>
         </Box>
         
