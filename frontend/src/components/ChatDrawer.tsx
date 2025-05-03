@@ -149,7 +149,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
         {/* Header */}
         <Box sx={{ 
-          p: 2, 
+          py: 1, 
+          px: 2, 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between',
@@ -172,7 +173,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
         <Box sx={{ 
           flex: 1, 
           overflowY: 'auto', 
-          p: 2,
+          p: 1.5,
           backgroundColor: '#f5f5f5',
         }}>
           <List sx={{ width: '100%' }}>
@@ -190,12 +191,12 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
                   <Box
                     sx={{
                       display: 'flex',
+                      width: '100%',
                       flexDirection: msg.sender === 'user' ? 'row-reverse' : 'row',
-                      alignItems: 'center',
-                      mb: 0.5,
+                      alignItems: 'flex-start',
                     }}
                   >
-                    <ListItemAvatar sx={{ minWidth: 40 }}>
+                    <ListItemAvatar sx={{ minWidth: 40, mt: 0 }}>
                       <Avatar
                         sx={{
                           width: 32,
@@ -206,31 +207,37 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
                         {msg.sender === 'user' ? <PersonIcon fontSize="small" /> : <BotIcon fontSize="small" />}
                       </Avatar>
                     </ListItemAvatar>
-                    <Typography variant="caption" color="text.secondary">
-                      {msg.sender === 'user' ? 'You' : 'AI Assistant'} • {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </Typography>
-                  </Box>
-                  <Paper
-                    elevation={1}
-                    sx={{
-                      p: 2,
-                      maxWidth: '70%',
-                      ml: msg.sender === 'user' ? 'auto' : 0,
-                      mr: msg.sender === 'user' ? 0 : 'auto',
-                      backgroundColor: msg.sender === 'user' ? 'primary.light' : 'white',
-                      borderRadius: 2,
-                    }}
-                  >
-                    <Typography
-                      component="div"
+                    <Paper
+                      elevation={1}
                       sx={{
-                        wordBreak: 'break-word',
-                        whiteSpace: 'pre-wrap',
+                        p: 1.5,
+                        maxWidth: 'calc(100% - 50px)',
+                        backgroundColor: msg.sender === 'user' ? 'primary.light' : 'white',
+                        borderRadius: 2,
                       }}
                     >
-                      {msg.text}
-                    </Typography>
-                  </Paper>
+                      <Typography
+                        component="div"
+                        sx={{
+                          wordBreak: 'break-word',
+                          whiteSpace: 'pre-wrap',
+                        }}
+                      >
+                        {msg.text}
+                      </Typography>
+                      <Typography 
+                        variant="caption" 
+                        color="text.secondary" 
+                        sx={{ 
+                          display: 'block', 
+                          textAlign: msg.sender === 'user' ? 'right' : 'left',
+                          mt: 0.5 
+                        }}
+                      >
+                        {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </Paper>
+                  </Box>
                 </ListItem>
               </Fade>
             ))}
