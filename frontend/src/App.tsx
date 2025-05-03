@@ -28,7 +28,7 @@ const App: React.FC = () => {
       </Box>
 
       <div>
-        <img src="/img/builder-bot-upper.png" style={{ position: 'absolute', bottom: '0px', left: '50%', transform: 'translateX(-50%)' }} alt="Builder Bot" />
+        <img src="/img/builder-bot-upper.png" style={{ display: 'block', position: 'fixed', width: '120px', bottom: '-20px', left: '20%', transform: 'translateX(-50%)' }} alt="Builder Bot" />
       </div>
     </Box>
   );
