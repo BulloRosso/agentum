@@ -195,18 +195,8 @@ const ToolDataExplorer: React.FC = () => {
             variant="outlined" 
             startIcon={<RefreshIcon />}
             onClick={() => fetchFiles(currentPath)}
-            sx={{ mr: 1 }}
           >
             Refresh
-          </Button>
-          
-          <Button 
-            variant="contained" 
-            startIcon={<AddIcon />}
-            onClick={initializeDataFolder}
-            color="primary"
-          >
-            Initialize Data
           </Button>
         </Box>
       </Box>
@@ -264,11 +254,6 @@ const ToolDataExplorer: React.FC = () => {
                           primary={item.name} 
                           secondary="Folder"
                         />
-                        <ListItemSecondaryAction>
-                          <IconButton edge="end" onClick={() => navigateToFolder(item.path)}>
-                            <ArrowUpwardIcon />
-                          </IconButton>
-                        </ListItemSecondaryAction>
                       </ListItem>
                     </React.Fragment>
                   );
