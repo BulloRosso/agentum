@@ -8,11 +8,9 @@ import {
   Paper,
   List,
   ListItem,
-  ListItemText,
   ListItemAvatar,
   Avatar,
   Button,
-  Divider,
   Fade
 } from '@mui/material';
 import {
