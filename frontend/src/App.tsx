@@ -26,6 +26,8 @@ const App: React.FC = () => {
           </Typography>
         </Container>
       </Box>
+
+      <img src="/public/img/builder-bot-upper.png" style={{ position: 'absolute:', bottom: '0px', left: '50%'}}></img>
     </Box>
   );
 };
