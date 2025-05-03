@@ -111,7 +111,7 @@ const MCPStatusCard: React.FC = () => {
                   <List dense>
                     {tools.map(tool => (
                       <ListItem key={tool.name}>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
+                        <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                           <BuildIcon fontSize="small" />
                         </ListItemIcon>
                         <ListItemText 
@@ -156,7 +156,7 @@ const MCPStatusCard: React.FC = () => {
                   <List dense>
                     {resources.map(resource => (
                       <ListItem key={resource.name}>
-                        <ListItemIcon sx={{ minWidth: 36 }}>
+                        <ListItemIcon sx={{ minWidth: 36, alignSelf: 'flex-start', mt: 0.5 }}>
                           <DescriptionIcon fontSize="small" />
                         </ListItemIcon>
                         <ListItemText 

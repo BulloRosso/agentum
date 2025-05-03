@@ -270,7 +270,7 @@ const A2ARemoteAgentsCard: React.FC = () => {
                         >
                           <SmartToyIcon 
                             color="primary" 
-                            sx={{ mr: 2, fontSize: 20 }} 
+                            sx={{ mr: 2, fontSize: 20, mt: 0.5 }} 
                           />
                           <ListItemText
                             primary={agent.name}
