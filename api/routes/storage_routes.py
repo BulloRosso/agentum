@@ -20,7 +20,7 @@ from services.storage import StorageTextFile, StorageBinaryFile
 logger = logging.getLogger("api.routes.storage")
 
 # Create router
-router = APIRouter(prefix="/api/v1/storage", tags=["Storage"])
+router = APIRouter(prefix="/v1/storage", tags=["Storage"])
 
 # Pydantic models for request/response
 class FileInfo(BaseModel):
