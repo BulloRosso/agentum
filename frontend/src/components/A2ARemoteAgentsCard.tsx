@@ -186,11 +186,11 @@ const A2ARemoteAgentsCard: React.FC = () => {
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
-        <Typography variant="h6" component="div" gutterBottom>
+        <Typography variant="h6" component="div" >
           A2A Remote Agents
         </Typography>
         
-        <Box sx={{ display: 'flex', mb: 3, gap: 1, marginTop: 20 }}>
+        <Box sx={{ display: 'flex', mb: 3, gap: 1, marginTop: '24px' }}>
           <TextField
             label="Remote Host"
             variant="outlined"
@@ -270,7 +270,7 @@ const A2ARemoteAgentsCard: React.FC = () => {
                         >
                           <SmartToyIcon 
                             color="primary" 
-                            sx={{ mr: 2, fontSize: 20, mt: 0.5 }} 
+                            sx={{ mr: 2, fontSize: 20, mt: 0 }} 
                           />
                           <ListItemText
                             primary={agent.name}
