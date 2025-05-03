@@ -3,8 +3,6 @@ import {
   Box,
   Typography,
   Chip,
-  Card,
-  CardContent,
   Collapse,
   List,
   ListItem,
