@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Base URL for API requests
-const API_URL = 'http://localhost:3000'; // Same as other API calls
+// Base URL for API requests - use the same base URL as the proxy
+const API_URL = window.location.origin; // This will use the origin of the current page
 
 // Types
 export interface FileInfo {
