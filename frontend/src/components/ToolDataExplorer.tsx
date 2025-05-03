@@ -59,11 +59,22 @@ const ToolDataExplorer: React.FC = () => {
     setCurrentPage
   } = useStorageStore();
 
-  // Initial load
+  // Initial load with retry mechanism
   useEffect(() => {
-    // Focus on the data folder by default
-    fetchFiles('data');
-  }, [fetchFiles]);
+    // Initialize data folder first (if needed) then focus on it
+    const initAndFetch = async () => {
+      try {
+        // Try to initialize the data folder first
+        await initializeDataFolder();
+        // Then fetch the files from the data folder
+        await fetchFiles('data');
+      } catch (error) {
+        console.error('Error initializing data folder:', error);
+      }
+    };
+    
+    initAndFetch();
+  }, [fetchFiles, initializeDataFolder]);
 
   // Calculate pagination
   const totalItems = files.length + folders.length;

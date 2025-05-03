@@ -193,6 +193,23 @@ app.use('/api', (req, res) => {
   });
 });
 
+// Storage API endpoints - handle all methods (GET, POST, DELETE)
+app.all(['/api/v1/storage*', '/v1/storage*'], (req, res) => {
+  logger.info(`Proxying storage API request: ${req.method} ${req.path}`);
+  
+  // Remove /api prefix if it exists, and route to the API server
+  let targetPath = req.path;
+  if (targetPath.startsWith('/api/')) {
+    targetPath = targetPath.substring(4); // Remove /api
+  }
+  
+  proxy.web(req, res, {
+    target: `http://localhost:3000${targetPath}`,
+    ignorePath: true,
+    changeOrigin: true
+  });
+});
+
 // Handle direct v1 API requests without changing the URL structure
 app.use('/v1', (req, res) => {
   logger.info(`Proxying direct v1 API request: ${req.path}`);
