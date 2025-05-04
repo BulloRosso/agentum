@@ -1,5 +1,10 @@
-import React, { useState } from 'react';
-import { Container, Box, Typography, AppBar, Toolbar, Fade } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { 
+  Container, Box, Typography, AppBar, Toolbar, Fade,
+  IconButton, Menu, MenuItem, Modal, TextField, Button,
+  Dialog, DialogTitle, DialogContent, DialogActions
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
 import Dashboard from './components/Dashboard';
 import ChatDrawer from './components/ChatDrawer';
 
