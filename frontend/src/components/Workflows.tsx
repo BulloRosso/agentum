@@ -16,6 +16,7 @@ import {
   Alert
 } from '@mui/material';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -24,7 +25,7 @@ import { useWorkflowStore } from '../store/workflowStore';
 
 const Workflows: React.FC = () => {
   const { workflows, isLoading, error, fetchWorkflows } = useWorkflowStore();
-  const [expandedWorkflows, setExpandedWorkflows] = useState<boolean>(true);
+  const [expandedWorkflows, setExpandedWorkflows] = useState<boolean>(false); // Start collapsed
 
   // Fetch workflows when component mounts - no auto-refresh
   useEffect(() => {
@@ -132,7 +133,7 @@ const Workflows: React.FC = () => {
         
         {!isLoading || workflows.length > 0 ? (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+            <Box sx={{ marginTop: "36px", display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary">
                 {workflows.length} workflow{workflows.length !== 1 ? 's' : ''} available
               </Typography>
@@ -141,7 +142,7 @@ const Workflows: React.FC = () => {
                 size="small" 
                 onClick={() => fetchWorkflows()}
                 disabled={isLoading}
-                startIcon={isLoading ? <CircularProgress size={16} /> : undefined}
+                startIcon={isLoading ? <CircularProgress size={16} /> : <RefreshIcon /> }
               >
                 Refresh
               </Button>

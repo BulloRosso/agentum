@@ -186,9 +186,19 @@ const A2ARemoteAgentsCard: React.FC = () => {
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
-        <Typography variant="h6" component="div" >
-          A2A Remote Agents
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" component="div">
+            A2A Remote Agents
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <img 
+              src="./img/a2a-logo.png" 
+              alt="A2A Logo" 
+              height="30px"
+              style={{ objectFit: 'contain' }}
+            />
+          </Box>
+        </Box>
         
         <Box sx={{ display: 'flex', mb: 3, gap: 1, marginTop: '24px' }}>
           <TextField
@@ -234,9 +244,9 @@ const A2ARemoteAgentsCard: React.FC = () => {
           </Typography>
         ) : (
           <>
-            <Divider sx={{ my: 2 }} />
+            
             {remoteHosts.map((host) => (
-              <Box key={host.url} sx={{ mb: 2 }}>
+              <Box key={host.url} sx={{ mb: 1 }}>
                 <Box
                   onClick={() => toggleHostSection(host.url)}
                   sx={{
@@ -251,8 +261,9 @@ const A2ARemoteAgentsCard: React.FC = () => {
                     Remote Agents ({host.agents.length})
                   </Typography>
                   {expandedHosts[host.url] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  
                 </Box>
-                
+                <Divider sx={{  }} />
                 <Collapse in={expandedHosts[host.url]} timeout="auto">
                   <List dense>
                     {host.agents.map((agent, index) => (
