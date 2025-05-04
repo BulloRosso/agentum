@@ -117,20 +117,21 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
       try {
         console.log(`Sending message to API endpoint: ${apiEndpoint}`);
         
-        // Create FormData and append message and sessionId
-        const formData = new FormData();
-        formData.append('message', userMessageContent);
-        formData.append('sessionId', sessionId);
-        
-        // Append files if any
-        selectedFiles.forEach(file => {
-          formData.append('files', file);
-        });
+        // Create the request payload in the specified JSON format
+        const requestPayload = {
+          sessionId: sessionId,
+          action: "sendMessage",
+          chatInput: userMessageContent
+        };
+
+        console.log('Sending payload:', requestPayload);
 
         const response = await fetch(apiEndpoint, {
           method: 'POST',
-          // Don't set Content-Type header, browser will set it with boundary for multipart/form-data
-          body: formData,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestPayload),
         });
 
         if (!response.ok) {
