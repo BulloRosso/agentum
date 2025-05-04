@@ -248,9 +248,12 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
                     <Paper
                       elevation={1}
                       sx={{
-                        p: 1.5,
+                        p: 2,
+                        paddingTop: 0,
+                        paddingBottom: '6px',
+                        marginRight: '10px',
                         maxWidth: 'calc(100% - 50px)',
-                        backgroundColor: msg.sender === 'user' ? 'primary.light' : 'white',
+                        backgroundColor: msg.sender === 'user' ? '#f7f0dd' : 'white',
                         borderRadius: 2,
                       }}
                     >

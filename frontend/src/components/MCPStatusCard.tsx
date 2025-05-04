@@ -56,9 +56,19 @@ const MCPStatusCard: React.FC = () => {
   return (
     <Card sx={{ mb: 3 }}>
       <CardContent>
-        <Typography variant="h6" component="div" gutterBottom>
-          MCP Server Status
-        </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Typography variant="h6" component="div">
+            MCP Server Status
+          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+            <img 
+              src="/img/mcp-logo.png" 
+              alt="MCP Logo" 
+              height="30px"
+              style={{ objectFit: 'contain' }}
+            />
+          </Box>
+        </Box>
         
         {isLoading && !status && (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
