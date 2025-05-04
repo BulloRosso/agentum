@@ -16,6 +16,7 @@ import {
   Alert
 } from '@mui/material';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -141,7 +142,7 @@ const Workflows: React.FC = () => {
                 size="small" 
                 onClick={() => fetchWorkflows()}
                 disabled={isLoading}
-                startIcon={isLoading ? <CircularProgress size={16} /> : undefined}
+                startIcon={isLoading ? <CircularProgress size={16} /> : <RefreshIcon /> }
               >
                 Refresh
               </Button>
