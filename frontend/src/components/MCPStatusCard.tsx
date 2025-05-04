@@ -62,7 +62,7 @@ const MCPStatusCard: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <img 
-              src="/img/mcp-logo.png" 
+              src="./img/mcp-logo.png" 
               alt="MCP Logo" 
               height="30px"
               style={{ objectFit: 'contain' }}
