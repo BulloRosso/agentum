@@ -132,7 +132,7 @@ const Workflows: React.FC = () => {
         
         {!isLoading || workflows.length > 0 ? (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
+            <Box sx={{ marginTop: "36px", display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary">
                 {workflows.length} workflow{workflows.length !== 1 ? 's' : ''} available
               </Typography>

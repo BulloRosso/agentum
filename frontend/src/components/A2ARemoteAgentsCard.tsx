@@ -244,9 +244,9 @@ const A2ARemoteAgentsCard: React.FC = () => {
           </Typography>
         ) : (
           <>
-            <Divider sx={{ my: 2 }} />
+            
             {remoteHosts.map((host) => (
-              <Box key={host.url} sx={{ mb: 2 }}>
+              <Box key={host.url} sx={{ mb: 1 }}>
                 <Box
                   onClick={() => toggleHostSection(host.url)}
                   sx={{
@@ -261,8 +261,9 @@ const A2ARemoteAgentsCard: React.FC = () => {
                     Remote Agents ({host.agents.length})
                   </Typography>
                   {expandedHosts[host.url] ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                  
                 </Box>
-                
+                <Divider sx={{  }} />
                 <Collapse in={expandedHosts[host.url]} timeout="auto">
                   <List dense>
                     {host.agents.map((agent, index) => (
