@@ -35,9 +35,10 @@ interface ChatMessage {
 interface ChatDrawerProps {
   open: boolean;
   onClose: () => void;
+  apiEndpoint?: string; // Optional chat API endpoint
 }
 
-const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
+const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -79,7 +80,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
     }
   }, [messages]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (message.trim() === '') return;
 
     // Add user message
@@ -90,34 +91,81 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
       timestamp: new Date()
     };
 
+    const userMessageContent = message; // Store message before clearing input
     setMessages(prev => [...prev, userMessage]);
     setMessage('');
 
-    // Simulate bot response (would be replaced with actual API call)
-    setTimeout(() => {
-      // Create a more interesting response that shows markdown capabilities
-      const responseText = `This is a simulated response to "${message}".\n\n` +
-        `You can also try sending markdown in your messages:\n` +
-        `- Use **bold** or *italic* text\n` +
-        `- Create bullet lists\n` +
-        `- Add \`inline code\` or code blocks:\n\n` +
-        "```javascript\n" +
-        "// Example code\n" +
-        "function sayHello() {\n" +
-        "  console.log('Hello world!');\n" +
-        "}\n" +
-        "```\n\n" +
-        "In a complete implementation, this would connect to the OpenAI API.";
-      
-      const botMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'bot',
-        text: responseText,
-        timestamp: new Date()
-      };
-      
-      setMessages(prev => [...prev, botMessage]);
-    }, 1000);
+    // If apiEndpoint is available, use it, otherwise fall back to simulation
+    if (apiEndpoint && apiEndpoint.trim() !== '') {
+      try {
+        console.log(`Sending message to API endpoint: ${apiEndpoint}`);
+        
+        const response = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            message: userMessageContent,
+            // Add other parameters if needed by your API
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`API request failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Assume the API returns a response field
+        const botMessage: ChatMessage = {
+          id: Date.now().toString(),
+          sender: 'bot',
+          text: data.response || "Sorry, I couldn't process your request.",
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+      } catch (error) {
+        console.error('Error calling chat API:', error);
+        
+        // Show error as a bot message
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          sender: 'bot',
+          text: `**Error:** Could not connect to the chat API at \`${apiEndpoint}\`. Please check the endpoint URL in settings.`,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      }
+    } else {
+      // Simulate bot response (fallback for demo purposes)
+      setTimeout(() => {
+        // Create a more interesting response that shows markdown capabilities
+        const responseText = `This is a simulated response to "${userMessageContent}".\n\n` +
+          `You can also try sending markdown in your messages:\n` +
+          `- Use **bold** or *italic* text\n` +
+          `- Create bullet lists\n` +
+          `- Add \`inline code\` or code blocks:\n\n` +
+          "```javascript\n" +
+          "// Example code\n" +
+          "function sayHello() {\n" +
+          "  console.log('Hello world!');\n" +
+          "}\n" +
+          "```\n\n" +
+          "To connect to an actual API, set the Chat API endpoint in the menu settings.";
+        
+        const botMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          sender: 'bot',
+          text: responseText,
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+      }, 1000);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -194,9 +242,16 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose }) => {
           justifyContent: 'space-between',
           borderBottom: '1px solid rgba(0, 0, 0, 0.12)'
         }}>
-          <Typography variant="h6" component="div" fontWeight="bold">
-            PoC Chatbot
-          </Typography>
+          <Box>
+            <Typography variant="h6" component="div" fontWeight="bold">
+              PoC Chatbot
+            </Typography>
+            {apiEndpoint && (
+              <Typography variant="caption" color="text.secondary">
+                API: {apiEndpoint ? apiEndpoint.substring(0, 30) + (apiEndpoint.length > 30 ? '...' : '') : 'Not configured'}
+              </Typography>
+            )}
+          </Box>
           <IconButton 
             edge="end" 
             color="inherit" 
