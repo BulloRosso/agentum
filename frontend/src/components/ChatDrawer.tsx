@@ -292,30 +292,6 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
             <Typography variant="h6" component="div" fontWeight="bold">
               PoC Chatbot
             </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
-              <TextField
-                size="small"
-                label="Session ID"
-                value={sessionId}
-                onChange={(e) => {
-                  const newSessionId = e.target.value;
-                  setSessionId(newSessionId);
-                  localStorage.setItem('chatSessionId', newSessionId);
-                }}
-                sx={{ 
-                  maxWidth: '180px',
-                  '& .MuiInputBase-input': { 
-                    fontSize: '0.75rem',
-                    py: 0.5
-                  }
-                }}
-              />
-              {apiEndpoint && (
-                <Typography variant="caption" color="text.secondary">
-                  API: {apiEndpoint.substring(0, 20) + (apiEndpoint.length > 20 ? '...' : '')}
-                </Typography>
-              )}
-            </Box>
           </Box>
           <IconButton 
             edge="end" 
@@ -457,7 +433,45 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
               style={{ display: 'none' }}
               onChange={handleFileUpload}
               accept="image/*,application/pdf"
+              multiple
             />
+          </Box>
+          
+          {/* Session ID and API Endpoint Info */}
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              mt: 2,
+              pt: 2,
+              borderTop: '1px dashed rgba(0, 0, 0, 0.12)'
+            }}
+          >
+            <TextField
+              size="small"
+              label="Session ID"
+              value={sessionId}
+              onChange={(e) => {
+                const newSessionId = e.target.value;
+                setSessionId(newSessionId);
+                localStorage.setItem('chatSessionId', newSessionId);
+              }}
+              sx={{ 
+                width: '180px',
+                '& .MuiInputBase-input': { 
+                  fontSize: '0.75rem',
+                  py: 0.5
+                }
+              }}
+            />
+            {apiEndpoint && (
+              <Box sx={{ ml: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  API Endpoint: {apiEndpoint.substring(0, 40) + (apiEndpoint.length > 40 ? '...' : '')}
+                </Typography>
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>
