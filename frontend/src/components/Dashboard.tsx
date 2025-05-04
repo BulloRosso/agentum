@@ -61,21 +61,20 @@ const Dashboard: React.FC = () => {
       )}
       
       <Grid container spacing={3}>
-        {/* Workflows */}
-        <Grid item xs={12}>
+        {/* Workflows and Tool Data Explorer side by side */}
+        <Grid item xs={12} md={6}>
           <Workflows />
         </Grid>
         
-        {/* Tool Data Explorer */}
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <ToolDataExplorer />
         </Grid>
         
+        {/* API Status and A2A Status side by side */}
         <Grid item xs={12} md={6}>
           <APIStatusCard />
         </Grid>
         
-        {/* A2A Server Status */}
         <Grid item xs={12} md={6}>
           <A2AStatusCard />
         </Grid>
