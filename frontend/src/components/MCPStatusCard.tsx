@@ -21,6 +21,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ErrorIcon from '@mui/icons-material/Error';
 import { useMCPStore } from '../store/mcpStore';
+import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 
 const MCPStatusCard: React.FC = () => {
   const { status, tools, resources, prompts, isLoading, error, fetchAll } = useMCPStore();
@@ -62,7 +63,7 @@ const MCPStatusCard: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <img 
-              src="./img/mcp-logo.png" 
+              src="/img/mcp-logo.png" 
               alt="MCP Logo" 
               height="30px"
               style={{ objectFit: 'contain' }}
@@ -84,16 +85,19 @@ const MCPStatusCard: React.FC = () => {
         
         {status && (
           <>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <Chip 
-                label={status.status === 'operational' ? 'Online' : 'Offline'} 
-                color={status.status === 'operational' ? 'success' : 'error'} 
-                size="small"
-                sx={{ mr: 1 }}
-              />
+            <Box sx={{ display: 'flex',justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+             
               <Typography variant="body2" color="text.secondary">
                 Server provides {status.tools} tools, {status.resources} resources, and {status.prompts} prompts
               </Typography>
+
+              <Chip 
+                label={status.status === 'operational' ? 'operational' : 'Offline'} 
+                color={status.status === 'operational' ? 'success' : 'error'} 
+                size="small"
+                icon={status.status === 'operational' ? <CheckCircleIcon /> : <ErrorIcon />}
+                sx={{ mr: 1 }}
+              />
             </Box>
             
             {/* Tools Section */}

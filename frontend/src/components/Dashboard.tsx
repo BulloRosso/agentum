@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Box, Grid, Alert, CircularProgress } from '@mui/material';
 import A2AStatusCard from './A2AStatusCard';
-import MCPStatusCard from './MCPStatusCardFixed';
+import MCPStatusCard from './MCPStatusCard';
 import APIStatusCard from './APIStatusCard';
 import Workflows from './Workflows';
 import A2ARemoteAgentsCard from './A2ARemoteAgentsCard';
