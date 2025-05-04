@@ -142,52 +142,37 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
         const responseData = await response.json();
         console.log('API response:', responseData);
         
-        // Handle the specific response format: [{"output": "{"response":"message text"}"}]
+        // Default response text
         let responseText = "Sorry, I couldn't process your request.";
         
-        try {
-          if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].output) {
-            console.log('Output from API:', responseData[0].output);
-            
-            // Try to parse the output which is a stringified JSON
-            // First, check if it's already an object or a string
-            let parsedOutput;
-            
-            if (typeof responseData[0].output === 'object') {
-              // It's already an object
-              parsedOutput = responseData[0].output;
-            } else {
-              // It's a string that needs parsing
-              parsedOutput = JSON.parse(responseData[0].output);
-            }
-            
-            console.log('Parsed output:', parsedOutput);
-            
-            if (parsedOutput && parsedOutput.response) {
-              responseText = parsedOutput.response;
-              console.log('Extracted response:', responseText);
-            }
-          }
-        } catch (parseError) {
-          console.error('Error parsing API response:', parseError);
-          console.error('Response data was:', responseData);
-          
-          // Try a different approach if the standard parsing fails
+        // Simple direct approach - check if the API returned a response field directly
+        if (responseData && responseData.response) {
+          // Use the response directly if it's in the expected format
+          responseText = responseData.response;
+          console.log('Direct response found:', responseText);
+        } 
+        // If the response is in the wrapped format: [{"output": "{"response":"message text"}"}]
+        else if (Array.isArray(responseData) && responseData.length > 0) {
           try {
-            if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].output) {
-              // Sometimes the JSON might be escaped or have extra quotes
-              const outputStr = responseData[0].output.toString();
-              console.log('Output as string:', outputStr);
+            if (responseData[0].output) {
+              console.log('Output from API:', responseData[0].output);
               
-              // Try to extract the response using regex
-              const responseMatch = outputStr.match(/"response":"([^"]+)"/);
-              if (responseMatch && responseMatch[1]) {
-                responseText = responseMatch[1];
-                console.log('Extracted via regex:', responseText);
+              // If output is a string containing JSON
+              if (typeof responseData[0].output === 'string') {
+                const parsedOutput = JSON.parse(responseData[0].output);
+                if (parsedOutput && parsedOutput.response) {
+                  responseText = parsedOutput.response;
+                  console.log('Parsed nested response:', responseText);
+                }
+              } 
+              // If output is already an object
+              else if (typeof responseData[0].output === 'object' && responseData[0].output.response) {
+                responseText = responseData[0].output.response;
+                console.log('Used object response:', responseText);
               }
             }
-          } catch (backupError) {
-            console.error('Backup extraction failed:', backupError);
+          } catch (error) {
+            console.error('Error processing API response:', error);
           }
         }
         
