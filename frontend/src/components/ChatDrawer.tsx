@@ -23,6 +23,7 @@ import {
 } from '@mui/icons-material';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import TypingIndicator from './TypingIndicator';
 
 // Define a type for chat messages
 interface ChatMessage {
@@ -43,6 +44,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
   const [message, setMessage] = useState('');
   const [sessionId, setSessionId] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -115,6 +117,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
     // If apiEndpoint is available, use it, otherwise fall back to simulation
     if (apiEndpoint && apiEndpoint.trim() !== '') {
       try {
+        // Show typing indicator while waiting for response
+        setIsTyping(true);
+        
         console.log(`Sending message to API endpoint: ${apiEndpoint}`);
         
         // Create the request payload in the specified JSON format
@@ -141,6 +146,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
         // Get the response data
         const responseData = await response.json();
         console.log('API response:', responseData);
+        
+        // Hide typing indicator since we got the response
+        setIsTyping(false);
         
         // Default response text
         let responseText = "Sorry, I couldn't process your request.";
@@ -191,6 +199,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
       } catch (error) {
         console.error('Error calling chat API:', error);
         
+        // Hide typing indicator
+        setIsTyping(false);
+        
         // Reset selected files on error
         setSelectedFiles([]);
         
@@ -206,6 +217,10 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
       }
     } else {
       // Simulate bot response (fallback for demo purposes)
+      
+      // Show typing indicator
+      setIsTyping(true);
+      
       setTimeout(() => {
         // Create a more interesting response that shows markdown capabilities
         const responseText = `This is a simulated response to "${userMessageContent}".\n\n` +
@@ -222,6 +237,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
           "To connect to an actual API, set the Chat API endpoint in the menu settings." +
           (selectedFiles.length > 0 ? `\n\nReceived ${selectedFiles.length} file(s): ${selectedFiles.map(f => f.name).join(', ')}` : "");
         
+        // Hide typing indicator
+        setIsTyping(false);
+        
         const botMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           sender: 'bot',
@@ -233,7 +251,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
         setSelectedFiles([]);
         
         setMessages(prev => [...prev, botMessage]);
-      }, 1000);
+      }, 2000);
     }
   };
 
@@ -293,7 +311,13 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
       
       // If API is not configured, show a simulated response
       if (!apiEndpoint || apiEndpoint.trim() === '') {
+        // Show typing indicator
+        setIsTyping(true);
+        
         setTimeout(() => {
+          // Hide typing indicator
+          setIsTyping(false);
+          
           const botResponse: ChatMessage = {
             id: (Date.now() + 1).toString(),
             sender: 'bot',
@@ -301,7 +325,7 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
             timestamp: new Date()
           };
           setMessages(prev => [...prev, botResponse]);
-        }, 1000);
+        }, 1500);
       }
     }
   };
@@ -414,6 +438,44 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
                 </ListItem>
               </Fade>
             ))}
+            
+            {/* Show typing indicator if waiting for API response */}
+            {isTyping && (
+              <Fade in={true} timeout={300}>
+                <ListItem
+                  alignItems="flex-start"
+                  sx={{
+                    mb: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      width: '100%',
+                      flexDirection: 'row',
+                      alignItems: 'flex-start',
+                    }}
+                  >
+                    <ListItemAvatar sx={{ minWidth: 40, mt: 0 }}>
+                      <Avatar
+                        sx={{
+                          width: 32,
+                          height: 32,
+                          bgcolor: 'secondary.main',
+                        }}
+                      >
+                        <BotIcon fontSize="small" />
+                      </Avatar>
+                    </ListItemAvatar>
+                    <TypingIndicator />
+                  </Box>
+                </ListItem>
+              </Fade>
+            )}
+            
             <div ref={messagesEndRef} />
           </List>
         </Box>
