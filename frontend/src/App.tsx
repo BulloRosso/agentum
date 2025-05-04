@@ -11,6 +11,17 @@ import ChatDrawer from './components/ChatDrawer';
 const App: React.FC = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [robotVisible, setRobotVisible] = useState(true);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
+  const [chatEndpoint, setChatEndpoint] = useState<string>('');
+
+  // Load chat endpoint from localStorage on component mount
+  useEffect(() => {
+    const savedEndpoint = localStorage.getItem('chat_endpoint_url');
+    if (savedEndpoint) {
+      setChatEndpoint(savedEndpoint);
+    }
+  }, []);
 
   const handleRobotClick = () => {
     setRobotVisible(false);
@@ -21,16 +32,93 @@ const App: React.FC = () => {
     setChatOpen(false);
     setTimeout(() => setRobotVisible(true), 300); // Delay to allow drawer to close
   };
+  
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleChatSettingsOpen = () => {
+    handleMenuClose();
+    setChatSettingsOpen(true);
+  };
+
+  const handleChatSettingsClose = () => {
+    setChatSettingsOpen(false);
+  };
+
+  const handleChatEndpointChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setChatEndpoint(e.target.value);
+  };
+
+  const saveChatEndpoint = () => {
+    localStorage.setItem('chat_endpoint_url', chatEndpoint);
+    handleChatSettingsClose();
+  };
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <AppBar position="static" elevation={0}>
         <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            aria-label="menu"
+            onClick={handleMenuOpen}
+            sx={{ mr: 2 }}
+          >
+            <MenuIcon />
+          </IconButton>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             Agents Playground
           </Typography>
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={handleChatSettingsOpen}>Chat interface settings</MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
+      
+      {/* Chat Settings Dialog */}
+      <Dialog open={chatSettingsOpen} onClose={handleChatSettingsClose}>
+        <DialogTitle>Chat Interface Settings</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="chat-endpoint"
+            label="Chat API endpoint (POST)"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={chatEndpoint}
+            onChange={handleChatEndpointChange}
+            sx={{ mt: 2, minWidth: 350 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleChatSettingsClose}>Cancel</Button>
+          <Button onClick={saveChatEndpoint} variant="contained" color="primary">
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
       
       <Container component="main" sx={{ mt: 2, mb: 4, flex: '1 1 auto', px: 3 }}>
         <Box sx={{ my: 2 }}>
@@ -50,7 +138,7 @@ const App: React.FC = () => {
       <Fade in={robotVisible} timeout={300}>
         <div>
           <img 
-            src="/img/builder-bot-upper.png" 
+            src="./img/builder-bot-upper.png" 
             style={{ 
               display: 'block', 
               position: 'fixed', 
@@ -69,7 +157,7 @@ const App: React.FC = () => {
       </Fade>
 
       {/* Chat drawer */}
-      <ChatDrawer open={chatOpen} onClose={handleChatClose} />
+      <ChatDrawer open={chatOpen} onClose={handleChatClose} apiEndpoint={chatEndpoint} />
     </Box>
   );
 };
