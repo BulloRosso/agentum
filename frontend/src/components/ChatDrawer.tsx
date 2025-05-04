@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Drawer,
   Box,
@@ -30,6 +30,7 @@ interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
   timestamp: Date;
+  files?: string[]; // Optional list of file names
 }
 
 interface ChatDrawerProps {
@@ -40,6 +41,8 @@ interface ChatDrawerProps {
 
 const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) => {
   const [message, setMessage] = useState('');
+  const [sessionId, setSessionId] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -51,6 +54,19 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
   const [isRecording, setIsRecording] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Load session ID from localStorage when component mounts
+  useEffect(() => {
+    const savedSessionId = localStorage.getItem('chatSessionId');
+    if (savedSessionId) {
+      setSessionId(savedSessionId);
+    } else {
+      // Generate a random session ID if none exists
+      const newSessionId = `session_${Date.now()}`;
+      localStorage.setItem('chatSessionId', newSessionId);
+      setSessionId(newSessionId);
+    }
+  }, []);
 
   // Set up marked options once at component initialization
   React.useEffect(() => {
@@ -88,7 +104,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
       id: Date.now().toString(),
       sender: 'user',
       text: message,
-      timestamp: new Date()
+      timestamp: new Date(),
+      files: selectedFiles.length > 0 ? selectedFiles.map(file => file.name) : undefined
     };
 
     const userMessageContent = message; // Store message before clearing input
@@ -100,15 +117,20 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
       try {
         console.log(`Sending message to API endpoint: ${apiEndpoint}`);
         
+        // Create FormData and append message and sessionId
+        const formData = new FormData();
+        formData.append('message', userMessageContent);
+        formData.append('sessionId', sessionId);
+        
+        // Append files if any
+        selectedFiles.forEach(file => {
+          formData.append('files', file);
+        });
+
         const response = await fetch(apiEndpoint, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ 
-            message: userMessageContent,
-            // Add other parameters if needed by your API
-          }),
+          // Don't set Content-Type header, browser will set it with boundary for multipart/form-data
+          body: formData,
         });
 
         if (!response.ok) {
@@ -116,6 +138,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
         }
 
         const data = await response.json();
+        
+        // Reset selected files after successful upload
+        setSelectedFiles([]);
         
         // Assume the API returns a response field
         const botMessage: ChatMessage = {
@@ -128,6 +153,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
         setMessages(prev => [...prev, botMessage]);
       } catch (error) {
         console.error('Error calling chat API:', error);
+        
+        // Reset selected files on error
+        setSelectedFiles([]);
         
         // Show error as a bot message
         const errorMessage: ChatMessage = {
@@ -154,7 +182,8 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
           "  console.log('Hello world!');\n" +
           "}\n" +
           "```\n\n" +
-          "To connect to an actual API, set the Chat API endpoint in the menu settings.";
+          "To connect to an actual API, set the Chat API endpoint in the menu settings." +
+          (selectedFiles.length > 0 ? `\n\nReceived ${selectedFiles.length} file(s): ${selectedFiles.map(f => f.name).join(', ')}` : "");
         
         const botMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
@@ -162,6 +191,9 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
           text: responseText,
           timestamp: new Date()
         };
+        
+        // Reset selected files after simulation
+        setSelectedFiles([]);
         
         setMessages(prev => [...prev, botMessage]);
       }, 1000);
@@ -196,30 +228,44 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      const file = files[0];
-      // In a real implementation, this would upload the file to OpenAI API
-      // and process it for multimodal analysis
-      console.log(`File selected: ${file.name}`);
+      // Convert FileList to Array and store the files
+      const fileArray = Array.from(files);
+      setSelectedFiles(prev => [...prev, ...fileArray]);
       
-      // Add a message showing the file was uploaded
+      // Create a message showing the selected files
+      const fileNames = fileArray.map(file => file.name).join(', ');
+      const fileCountText = fileArray.length === 1 
+        ? 'Selected 1 file' 
+        : `Selected ${fileArray.length} files`;
+      
+      // Add a message showing the file(s) selected
       const fileMessage: ChatMessage = {
         id: Date.now().toString(),
         sender: 'user',
-        text: `Uploaded file: ${file.name}`,
-        timestamp: new Date()
+        text: `${fileCountText}: ${fileNames}`,
+        timestamp: new Date(),
+        files: fileArray.map(file => file.name)
       };
+      
       setMessages(prev => [...prev, fileMessage]);
       
-      // Simulate bot response
-      setTimeout(() => {
-        const botResponse: ChatMessage = {
-          id: (Date.now() + 1).toString(),
-          sender: 'bot',
-          text: `**File received:** \`${file.name}\`\n\nIn a complete implementation, I would analyze this file using OpenAI's **multimodal capabilities** and provide insights about the content.\n\n![File analysis](https://via.placeholder.com/300x150?text=File+Analysis+Demo)`,
-          timestamp: new Date()
-        };
-        setMessages(prev => [...prev, botResponse]);
-      }, 1000);
+      // Clear the file input to allow selecting the same file again
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // If API is not configured, show a simulated response
+      if (!apiEndpoint || apiEndpoint.trim() === '') {
+        setTimeout(() => {
+          const botResponse: ChatMessage = {
+            id: (Date.now() + 1).toString(),
+            sender: 'bot',
+            text: `**Files selected:** \`${fileNames}\`\n\nFiles are ready to be sent with your next message. Type a message and click Send to submit both the message and files.\n\nTo connect to a real API for processing, set the Chat API endpoint in the menu settings.`,
+            timestamp: new Date()
+          };
+          setMessages(prev => [...prev, botResponse]);
+        }, 1000);
+      }
     }
   };
   
@@ -242,15 +288,34 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
           justifyContent: 'space-between',
           borderBottom: '1px solid rgba(0, 0, 0, 0.12)'
         }}>
-          <Box>
+          <Box sx={{ flex: 1 }}>
             <Typography variant="h6" component="div" fontWeight="bold">
               PoC Chatbot
             </Typography>
-            {apiEndpoint && (
-              <Typography variant="caption" color="text.secondary">
-                API: {apiEndpoint ? apiEndpoint.substring(0, 30) + (apiEndpoint.length > 30 ? '...' : '') : 'Not configured'}
-              </Typography>
-            )}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.5 }}>
+              <TextField
+                size="small"
+                label="Session ID"
+                value={sessionId}
+                onChange={(e) => {
+                  const newSessionId = e.target.value;
+                  setSessionId(newSessionId);
+                  localStorage.setItem('chatSessionId', newSessionId);
+                }}
+                sx={{ 
+                  maxWidth: '180px',
+                  '& .MuiInputBase-input': { 
+                    fontSize: '0.75rem',
+                    py: 0.5
+                  }
+                }}
+              />
+              {apiEndpoint && (
+                <Typography variant="caption" color="text.secondary">
+                  API: {apiEndpoint.substring(0, 20) + (apiEndpoint.length > 20 ? '...' : '')}
+                </Typography>
+              )}
+            </Box>
           </Box>
           <IconButton 
             edge="end" 
