@@ -18,7 +18,8 @@ import {
   Alert,
   Card,
   CardContent,
-  Chip
+  Chip,
+  Collapse
 } from '@mui/material';
 import {
   Folder as FolderIcon,
@@ -28,7 +29,9 @@ import {
   Delete as DeleteIcon,
   Close as CloseIcon,
   Refresh as RefreshIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  ExpandMore as ExpandMoreIcon,
+  ExpandLess as ExpandLessIcon
 } from '@mui/icons-material';
 import { useStorageStore } from '../store/storageStore';
 import MonacoEditor from 'react-monaco-editor';
@@ -37,6 +40,7 @@ import { getImageUrl } from '../api/storageApi';
 const ToolDataExplorer: React.FC = () => {
   const [showDemoJson, setShowDemoJson] = useState(false);
   const [jsonFileName, setJsonFileName] = useState('');
+  const [expandedFiles, setExpandedFiles] = useState(false);
 
   const {
     files,
@@ -304,79 +308,102 @@ const ToolDataExplorer: React.FC = () => {
             </Box>
           )}
           
-          {/* Files and folders list */}
-          <List>
-            {currentItems.length === 0 ? (
-              <ListItem>
-                <ListItemText primary="No files or folders found in this location." />
-              </ListItem>
-            ) : (
-              currentItems.map((item, index) => {
-                // Check if item is a folder
-                if ('path' in item) {
-                  return (
-                    <React.Fragment key={`folder-${item.path}`}>
-                      {index > 0 && <Divider />}
-                      <ListItem button onClick={() => navigateToFolder(item.path)}>
-                        <ListItemIcon>
-                          <FolderIcon color="primary" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={item.name} 
-                          secondary="Folder"
-                        />
-                      </ListItem>
-                    </React.Fragment>
-                  );
-                } else {
-                  // It's a file
-                  return (
-                    <React.Fragment key={`file-${item.name}`}>
-                      {index > 0 && <Divider />}
-                      <ListItem>
-                        <ListItemIcon>
-                          <FileIcon color="action" />
-                        </ListItemIcon>
-                        <ListItemText 
-                          primary={item.name} 
-                          secondary={formatSize(item.size)}
-                        />
-                        <ListItemSecondaryAction>
-                          {canPreviewFile(item.name, item.is_binary) && (
-                            <IconButton 
-                              edge="end" 
-                              onClick={() => {
-                                if (item.name.endsWith('.json')) {
-                                  // Use demo JSON viewer for JSON files
-                                  handleViewJsonDemo(item.name);
-                                } else {
-                                  // Use normal viewer for other file types
-                                  viewFile(item);
-                                }
-                              }}
-                            >
-                              <VisibilityIcon />
-                            </IconButton>
-                          )}
-                          <IconButton 
-                            edge="end" 
-                            onClick={() => {
-                              useStorageStore.setState({ selectedFile: item });
-                              deleteSelectedFile();
-                            }}
-                            color="error"
-                            sx={{ ml: 1 }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </ListItemSecondaryAction>
-                      </ListItem>
-                    </React.Fragment>
-                  );
-                }
-              })
-            )}
-          </List>
+          {/* File Explorer Section Header */}
+          <Box sx={{ mb: 2 }}>
+            <Box 
+              sx={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                cursor: 'pointer',
+                borderBottom: '1px solid rgba(0, 0, 0, 0.12)',
+                pb: 0.5
+              }}
+              onClick={() => setExpandedFiles(!expandedFiles)}
+            >
+              <FolderIcon sx={{ mr: 1, fontSize: 20, color: 'primary.main' }} />
+              <Typography variant="subtitle1">
+                File System ({folders.length + files.length} items)
+              </Typography>
+              <Box sx={{ flexGrow: 1 }} />
+              {expandedFiles ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </Box>
+            
+            <Collapse in={expandedFiles}>
+              {/* Files and folders list */}
+              <List>
+                {currentItems.length === 0 ? (
+                  <ListItem>
+                    <ListItemText primary="No files or folders found in this location." />
+                  </ListItem>
+                ) : (
+                  currentItems.map((item, index) => {
+                    // Check if item is a folder
+                    if ('path' in item) {
+                      return (
+                        <React.Fragment key={`folder-${item.path}`}>
+                          {index > 0 && <Divider />}
+                          <ListItem button onClick={() => navigateToFolder(item.path)}>
+                            <ListItemIcon>
+                              <FolderIcon color="primary" />
+                            </ListItemIcon>
+                            <ListItemText 
+                              primary={item.name} 
+                              secondary="Folder"
+                            />
+                          </ListItem>
+                        </React.Fragment>
+                      );
+                    } else {
+                      // It's a file
+                      return (
+                        <React.Fragment key={`file-${item.name}`}>
+                          {index > 0 && <Divider />}
+                          <ListItem>
+                            <ListItemIcon>
+                              <FileIcon color="action" />
+                            </ListItemIcon>
+                            <ListItemText 
+                              primary={item.name} 
+                              secondary={formatSize(item.size)}
+                            />
+                            <ListItemSecondaryAction>
+                              {canPreviewFile(item.name, item.is_binary) && (
+                                <IconButton 
+                                  edge="end" 
+                                  onClick={() => {
+                                    if (item.name.endsWith('.json')) {
+                                      // Use demo JSON viewer for JSON files
+                                      handleViewJsonDemo(item.name);
+                                    } else {
+                                      // Use normal viewer for other file types
+                                      viewFile(item);
+                                    }
+                                  }}
+                                >
+                                  <VisibilityIcon />
+                                </IconButton>
+                              )}
+                              <IconButton 
+                                edge="end" 
+                                onClick={() => {
+                                  useStorageStore.setState({ selectedFile: item });
+                                  deleteSelectedFile();
+                                }}
+                                color="error"
+                                sx={{ ml: 1 }}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </ListItemSecondaryAction>
+                          </ListItem>
+                        </React.Fragment>
+                      );
+                    }
+                  })
+                )}
+              </List>
+            </Collapse>
+          </Box>
           
           {/* Pagination controls */}
           {totalPages > 1 && (

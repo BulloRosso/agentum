@@ -24,7 +24,7 @@ import { useWorkflowStore } from '../store/workflowStore';
 
 const Workflows: React.FC = () => {
   const { workflows, isLoading, error, fetchWorkflows } = useWorkflowStore();
-  const [expandedWorkflows, setExpandedWorkflows] = useState<boolean>(true);
+  const [expandedWorkflows, setExpandedWorkflows] = useState<boolean>(false);
 
   // Fetch workflows when component mounts - no auto-refresh
   useEffect(() => {
