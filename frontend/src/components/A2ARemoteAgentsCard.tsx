@@ -192,7 +192,7 @@ const A2ARemoteAgentsCard: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <img 
-              src="/img/a2a-logo.png" 
+              src="./img/a2a-logo.png" 
               alt="A2A Logo" 
               height="30px"
               style={{ objectFit: 'contain' }}
