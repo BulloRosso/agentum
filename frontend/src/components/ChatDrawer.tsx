@@ -147,14 +147,48 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
         
         try {
           if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].output) {
-            // The output is a stringified JSON, so we need to parse it first
-            const parsedOutput = JSON.parse(responseData[0].output);
-            if (parsedOutput.response) {
+            console.log('Output from API:', responseData[0].output);
+            
+            // Try to parse the output which is a stringified JSON
+            // First, check if it's already an object or a string
+            let parsedOutput;
+            
+            if (typeof responseData[0].output === 'object') {
+              // It's already an object
+              parsedOutput = responseData[0].output;
+            } else {
+              // It's a string that needs parsing
+              parsedOutput = JSON.parse(responseData[0].output);
+            }
+            
+            console.log('Parsed output:', parsedOutput);
+            
+            if (parsedOutput && parsedOutput.response) {
               responseText = parsedOutput.response;
+              console.log('Extracted response:', responseText);
             }
           }
         } catch (parseError) {
           console.error('Error parsing API response:', parseError);
+          console.error('Response data was:', responseData);
+          
+          // Try a different approach if the standard parsing fails
+          try {
+            if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].output) {
+              // Sometimes the JSON might be escaped or have extra quotes
+              const outputStr = responseData[0].output.toString();
+              console.log('Output as string:', outputStr);
+              
+              // Try to extract the response using regex
+              const responseMatch = outputStr.match(/"response":"([^"]+)"/);
+              if (responseMatch && responseMatch[1]) {
+                responseText = responseMatch[1];
+                console.log('Extracted via regex:', responseText);
+              }
+            }
+          } catch (backupError) {
+            console.error('Backup extraction failed:', backupError);
+          }
         }
         
         // Reset selected files after successful upload
