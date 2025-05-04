@@ -138,16 +138,33 @@ const ChatDrawer: React.FC<ChatDrawerProps> = ({ open, onClose, apiEndpoint }) =
           throw new Error(`API request failed with status ${response.status}`);
         }
 
-        const data = await response.json();
+        // Get the response data
+        const responseData = await response.json();
+        console.log('API response:', responseData);
+        
+        // Handle the specific response format: [{"output": "{"response":"message text"}"}]
+        let responseText = "Sorry, I couldn't process your request.";
+        
+        try {
+          if (Array.isArray(responseData) && responseData.length > 0 && responseData[0].output) {
+            // The output is a stringified JSON, so we need to parse it first
+            const parsedOutput = JSON.parse(responseData[0].output);
+            if (parsedOutput.response) {
+              responseText = parsedOutput.response;
+            }
+          }
+        } catch (parseError) {
+          console.error('Error parsing API response:', parseError);
+        }
         
         // Reset selected files after successful upload
         setSelectedFiles([]);
         
-        // Assume the API returns a response field
+        // Create the bot message with the parsed response
         const botMessage: ChatMessage = {
           id: Date.now().toString(),
           sender: 'bot',
-          text: data.response || "Sorry, I couldn't process your request.",
+          text: responseText,
           timestamp: new Date()
         };
         
