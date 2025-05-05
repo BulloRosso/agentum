@@ -165,9 +165,9 @@ app.post('/tasks', (req, res) => {
   });
 });
 
-// Add all methods for /agent-card route to A2A server
-app.use('/agent-card', (req, res) => {
-  logger.info(`Proxying agent-card request to A2A server: ${req.method} ${req.path}`);
+// Add all methods for /tasks route to A2A server
+app.use('/tasks', (req, res) => {
+  logger.info(`Proxying agent tasks request to A2A server: ${req.method} ${req.path}`);
   
   proxy.web(req, res, {
     target: 'http://localhost:3200',

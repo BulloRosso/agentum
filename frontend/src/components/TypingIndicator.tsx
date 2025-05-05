@@ -17,6 +17,7 @@ const TypingIndicator: React.FC = () => {
       }}
     >
       <Box sx={{ 
+        paddingTop: '6px',
         display: 'flex', 
         alignItems: 'center', 
         height: '24px',
