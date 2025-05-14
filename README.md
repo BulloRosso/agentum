@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/bullorosso-agentum-badge.png)](https://mseep.ai/app/bullorosso-agentum)
+
 # Multi-Component System with A2A and MCP Server Integration
 
 This project is a scalable, multi-component system built with modern web technologies.
